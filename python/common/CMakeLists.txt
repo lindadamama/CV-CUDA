@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2022-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2022-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,19 +16,19 @@
 find_package(cvcuda REQUIRED)
 find_package(CUDAToolkit REQUIRED)
 
-add_library(nvcv_python_common STATIC
+add_library(cvcuda_python_common STATIC
     Assert.cpp
     CheckError.cpp
     PyUtil.cpp
     String.cpp
 )
 
-target_include_directories(nvcv_python_common
+target_include_directories(cvcuda_python_common
     PUBLIC
         ..
 )
 
-target_link_libraries(nvcv_python_common
+target_link_libraries(cvcuda_python_common
     PUBLIC
         nvcv_types
         nvcv_util

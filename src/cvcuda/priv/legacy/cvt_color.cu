@@ -1,4 +1,4 @@
-/* Copyright (c) 2021-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+/* Copyright (c) 2021-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  *
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
  * SPDX-License-Identifier: Apache-2.0
@@ -24,6 +24,8 @@
 #include "CvCudaLegacyHelpers.hpp"
 
 #include "CvCudaUtils.cuh"
+
+#include <cvcuda/cuda_tools/Compat.hpp>
 
 #include <cfloat>
 
@@ -843,7 +845,7 @@ inline ErrorCode BGR_to_RGB(const TensorDataStridedCuda &inData, const TensorDat
     case kCV_32F:
         CVCUDA_BGR2RGB_CASE(float3, float4);
     case kCV_64F:
-        CVCUDA_BGR2RGB_CASE(double3, double4);
+        CVCUDA_BGR2RGB_CASE(double3, double4_16a);
     default:
         LOG_ERROR("Unsupported DataType " << inDataType);
         return ErrorCode::INVALID_DATA_TYPE;
@@ -939,7 +941,7 @@ inline ErrorCode GRAY_to_BGR(const TensorDataStridedCuda &inData, const TensorDa
     case kCV_32F:
         CVCUDA_GRAY2BGR_CASE(float, float3, float4);
     case kCV_64F:
-        CVCUDA_GRAY2BGR_CASE(double, double3, double4);
+        CVCUDA_GRAY2BGR_CASE(double, double3, double4_16a);
     default:
         LOG_ERROR("Unsupported DataType " << inDataType);
         return ErrorCode::INVALID_DATA_TYPE;
@@ -1799,9 +1801,9 @@ ErrorCode CvtColor::infer(const TensorDataStridedCuda &inData, const TensorDataS
         BGR_to_GRAY, // CV_BGR2GRAY    =6
         BGR_to_GRAY, // CV_RGB2GRAY    =7
         GRAY_to_BGR, // CV_GRAY2BGR    =8
-        0,           //GRAY_to_BGRA,           // CV_GRAY2BGRA   =9
-        0,           //BGRA_to_GRAY,           // CV_BGRA2GRAY   =10
-        0,           //RGBA_to_GRAY,           // CV_RGBA2GRAY   =11
+        GRAY_to_BGR, // CV_GRAY2BGRA, CV_GRAY2RGBA   =9
+        BGR_to_GRAY, // CV_BGRA2GRAY   =10
+        BGR_to_GRAY, // CV_RGBA2GRAY   =11
 
         0, //BGR_to_BGR565,          // CV_BGR2BGR565  =12
         0, //RGB_to_BGR565,          // CV_RGB2BGR565  =13

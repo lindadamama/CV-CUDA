@@ -13,94 +13,53 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-from collections import defaultdict
+"""
+Setup script for CV-CUDA Python package.
+
+IMPORTANT: pyproject.toml is the authoritative source for package metadata (PEP 621).
+This setup.py provides:
+  1. Backward compatibility with legacy build tools (setup.py bdist_wheel)
+  2. Custom build logic that cannot be expressed in TOML (NoBuildExtension)
+
+For modern builds, prefer: python -m build (reads pyproject.toml)
+For legacy builds: python setup.py bdist_wheel (uses this file)
+"""
+
+from pathlib import Path
 from setuptools import setup, find_packages, Extension
 from setuptools.command.build_ext import build_ext
 
 
 class NoBuildExtension(build_ext):
-    """
-    Prevent setuptools from trying to build extensions since the actual
-    compilation is handled externally (e.g., via CMake).
-    """
+    """Prevent setuptools from building (CMake handles it)."""
     def run(self):
         pass
 
 
-def find_shared_libraries(lib_dir):
-    """
-    Locate the central shared libraries (libcvcuda.so, libnvcv_types.so)
-    and Python bindings (*.cpython-*.so) in the given directory.
+# Read README (shared with pyproject.toml)
+readme = Path(__file__).parent / 'README.md'
+long_desc = readme.read_text(encoding='utf-8') if readme.exists() else '${CMAKE_PROJECT_DESCRIPTION}'
 
-    Args:
-        lib_dir (str): The directory to search for shared libraries.
-
-    Returns:
-        dict: A dictionary containing shared libraries and bindings.
-    """
-    shared_libraries = defaultdict(list)
-
-    for root, _, files in os.walk(lib_dir):
-        for file in files:
-            if file.endswith('.so'):
-                file_path = os.path.relpath(os.path.join(root, file),
-                                            start=lib_dir)
-
-                # Central shared libraries
-                if file.startswith('libcvcuda'):
-                    shared_libraries['cvcuda'].append(file_path)
-                elif file.startswith('libnvcv_types'):
-                    shared_libraries['nvcv'].append(file_path)
-                # Python bindings
-                elif file.startswith('cvcuda') and 'cpython' in file:
-                    shared_libraries['cvcuda_bindings'].append(file_path)
-                elif file.startswith('nvcv') and 'cpython' in file:
-                    shared_libraries['nvcv_bindings'].append(file_path)
-
-    return shared_libraries
-
-
-# Locate libraries and bindings in the specified directory
-libs = find_shared_libraries(os.path.dirname(__file__))
-print(libs)
-
+# Minimal metadata - detailed classifiers and project URLs are in pyproject.toml only
 setup(
     name='cvcuda-cu${CUDA_VERSION_MAJOR}',
     version='${CMAKE_PROJECT_VERSION}${PROJECT_VERSION_SUFFIX}',
     description='${CMAKE_PROJECT_DESCRIPTION}',
+    long_description=long_desc,
+    long_description_content_type='text/markdown',
     author='NVIDIA Corporation',
     author_email='support@nvidia.com',
-    url='https://github.com/CVCUDA/CV-CUDA',
-    packages=find_packages(include=["cvcuda", "nvcv"]),
-    package_dir={
-        'cvcuda': 'cvcuda',
-        'nvcv': 'nvcv',
-    },
+    url='https://cvcuda.github.io',
+    license='Apache-2.0',
+    packages=find_packages(include=["cvcuda"]),
     package_data={
-        'cvcuda': ['_bindings/*.*'],
-        'nvcv': ['_bindings/*.*'],
+        'cvcuda': ['*.so'],
         'cvcuda_cu${CUDA_VERSION_MAJOR}.libs': ['*.*'],
     },
     include_package_data=True,
+    python_requires='>=3.9, <3.15',
     install_requires=['numpy>=1.23.5'],
-    python_requires='>=3.8, <3.14',
-    zip_safe=False,
     cmdclass={'build_ext': NoBuildExtension},
-    ext_modules=[
-        Extension(name='UnusedEmptyExtension', sources=[]),
-    ],
-    classifiers=[
-        'Environment :: GPU :: NVIDIA CUDA',
-        'Environment :: GPU :: NVIDIA CUDA :: ${CUDA_VERSION_MAJOR}',
-        'Operating System :: POSIX :: Linux',
-        'License :: OSI Approved :: Apache Software License',
-        'Programming Language :: Python :: 3.8',
-        'Programming Language :: Python :: 3.9',
-        'Programming Language :: Python :: 3.10',
-        'Programming Language :: Python :: 3.11',
-        'Programming Language :: Python :: 3.12',
-        'Programming Language :: Python :: 3.13',
-        'Programming Language :: Python :: Implementation :: CPython',
-    ],
+    ext_modules=[Extension(name='_unused', sources=[])],
+    # Classifiers, project URLs, and other metadata in pyproject.toml
 )

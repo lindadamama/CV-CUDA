@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2023-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2023-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -66,8 +66,8 @@ try
         nvcv::Tensor kernelSizeTensor({{shape.x}, "N"}, nvcv::TYPE_2S32);
         nvcv::Tensor kernelAnchorTensor({{shape.x}, "N"}, nvcv::TYPE_2S32);
 
-        benchutils::FillTensor<int2>(kernelSizeTensor, [&kernelSize](const long4 &){ return kernelSize; });
-        benchutils::FillTensor<int2>(kernelAnchorTensor, [&kernelAnchor](const long4 &){ return kernelAnchor; });
+        benchutils::FillTensor<int2>(kernelSizeTensor, [&kernelSize](const long4_16a &){ return kernelSize; });
+        benchutils::FillTensor<int2>(kernelAnchorTensor, [&kernelAnchor](const long4_16a &){ return kernelAnchor; });
 
         state.exec(nvbench::exec_tag::sync,
                    [&op, &src, &dst, &kernelSizeTensor, &kernelAnchorTensor, &borderType](nvbench::launch &launch)

@@ -40,6 +40,8 @@ add_executable(nvcv_test_types_unit
     TestImageFormat.cpp
     TestArray.cpp
     TestColorSpec.cpp
+    TestAllocator.cpp
+    TestTensorLayout.cpp
 )
 
 if(ENABLE_COMPAT_OLD_GLIBC)
@@ -57,7 +59,7 @@ target_link_libraries(nvcv_test_types_unit
         nvcv_util
         nvcv_test_common
         nvcv_types_priv
-        cuda
+        CUDA::cuda_driver
 )
 
-nvcv_add_test(nvcv_test_types_unit nvcv)
+nvcv_add_test(nvcv_test_types_unit nvcv cpp)

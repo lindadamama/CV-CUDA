@@ -91,6 +91,7 @@ void eraseCaller(const nvcv::ImageBatchVarShapeDataStridedCuda &imgs, const nvcv
     erase<D><<<grid, block, 0, stream>>>(src, anchorVec, erasingVec, valuesVec, imgIdxVec, channel, random, seed);
 }
 
+namespace {
 struct MaxWH
 {
     __device__ __forceinline__ int3 operator()(const int3 &a, const int3 &b) const
@@ -98,6 +99,7 @@ struct MaxWH
         return int3{max(a.x, b.x), max(a.y, b.y), 0};
     }
 };
+} // namespace
 
 namespace nvcv::legacy::cuda_op {
 
@@ -164,6 +166,17 @@ ErrorCode EraseVarShape::infer(const nvcv::ImageBatchVarShape &inbatch, const nv
         LOG_ERROR("Output must be varshape image batch");
     }
 
+    if (!inData->uniqueFormat())
+    {
+        LOG_ERROR("Images in input batch must all have the same format ");
+        return ErrorCode::INVALID_DATA_FORMAT;
+    }
+    if (!outData->uniqueFormat())
+    {
+        LOG_ERROR("Images in output batch must all have the same format ");
+        return ErrorCode::INVALID_DATA_FORMAT;
+    }
+
     DataFormat format     = helpers::GetLegacyDataFormat(*inData);
     DataFormat out_format = helpers::GetLegacyDataFormat(*outData);
     if (!(format == kNHWC || format == kHWC))
@@ -174,17 +187,6 @@ ErrorCode EraseVarShape::infer(const nvcv::ImageBatchVarShape &inbatch, const nv
     if (!(out_format == kNHWC || out_format == kHWC))
     {
         LOG_ERROR("Invalid output DataFormat " << out_format << ", the valid DataFormats are: \"NHWC\", \"HWC\"");
-        return ErrorCode::INVALID_DATA_FORMAT;
-    }
-
-    if (!inData->uniqueFormat())
-    {
-        LOG_ERROR("Images in input batch must all have the same format ");
-        return ErrorCode::INVALID_DATA_FORMAT;
-    }
-    if (!outData->uniqueFormat())
-    {
-        LOG_ERROR("Images in output batch must all have the same format ");
         return ErrorCode::INVALID_DATA_FORMAT;
     }
 

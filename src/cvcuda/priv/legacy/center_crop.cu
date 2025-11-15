@@ -1,4 +1,4 @@
-/* Copyright (c) 2021-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+/* Copyright (c) 2021-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  *
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
  * SPDX-License-Identifier: Apache-2.0
@@ -23,6 +23,7 @@
 
 #include "CvCudaUtils.cuh"
 
+#include <cvcuda/cuda_tools/Compat.hpp>
 #include <nvcv/Image.hpp>
 #include <nvcv/ImageData.hpp>
 #include <nvcv/TensorData.hpp>
@@ -130,11 +131,11 @@ ErrorCode CenterCrop::infer(const TensorDataStridedCuda &inData, const TensorDat
                            int crop_rows, int crop_columns, const int batch_size, const int rows, const int columns,
                            cudaStream_t stream);
     static const func_t funcs[5][4] = {
-        { center_crop<uchar>,  center_crop<uchar2>,  center_crop<uchar3>,  center_crop<uchar4>},
-        {center_crop<ushort>, center_crop<ushort2>, center_crop<ushort3>, center_crop<ushort4>},
-        {   center_crop<int>,    center_crop<int2>,    center_crop<int3>,    center_crop<int4>},
-        {                  0,                    0,                    0,                    0},
-        {center_crop<double>, center_crop<double2>, center_crop<double3>, center_crop<double4>},
+        { center_crop<uchar>,  center_crop<uchar2>,  center_crop<uchar3>,      center_crop<uchar4>},
+        {center_crop<ushort>, center_crop<ushort2>, center_crop<ushort3>,     center_crop<ushort4>},
+        {   center_crop<int>,    center_crop<int2>,    center_crop<int3>,        center_crop<int4>},
+        {                  0,                    0,                    0,                        0},
+        {center_crop<double>, center_crop<double2>, center_crop<double3>, center_crop<double4_16a>},
     };
     int data_size = DataSize(GetLegacyDataType(inData.dtype()));
     funcs[data_size / 2][channels - 1](inData, outData, crop_rows, crop_columns, batch, rows, columns, stream);

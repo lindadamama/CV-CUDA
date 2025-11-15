@@ -1,6 +1,6 @@
 #!/bin/bash -e
 #
-# SPDX-FileCopyrightText: Copyright (c) 2022-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2022-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -42,16 +42,17 @@ pip_depends="pytest torch numpy==1.26"
 # Collect all python versions that are indeed installed and have proper dependencies installed
 # Two behaviors:
 # - default: skip Python versions that are not installed or don't have pytest and torch installed
-# - if NVCV_FORCE_PYTHON is set: exit with error
+# - if FORCE_PYTHON_TESTS is set: exit with error
 for ver in $python_versions_tentative; do
+
     if ! python$ver -c "import pytest, torch, numpy" > /dev/null 2>&1; then
         echo "WARNING: Python version $ver not installed or missing proper dependencies"
         echo "Please install Python version $ver and run the following commands before running tests: python$ver -m pip install $pip_depends"
-        if [[ "$NVCV_FORCE_PYTHON" == 1 || "$NVCV_FORCE_PYTHON" == yes ]]; then
-            echo "Exiting with FAILURE, as NVCV_FORCE_PYTHON=$NVCV_FORCE_PYTHON"
+        if [[ "$FORCE_PYTHON_TESTS" == 1 || "$FORCE_PYTHON_TESTS" == yes ]]; then
+            echo "Exiting with FAILURE, as FORCE_PYTHON_TESTS=$FORCE_PYTHON_TESTS"
             exit 2 #hard exit
         else
-            echo "Continue and skipping python version $ver, as NVCV_FORCE_PYTHON=$NVCV_FORCE_PYTHON"
+            echo "Continue and skipping python version $ver, as FORCE_PYTHON_TESTS=$FORCE_PYTHON_TESTS"
         fi
     else
         echo "Found Python version $ver installed with proper dependencies, adding to tests"
@@ -73,26 +74,27 @@ export PYTHONPATH="$PYTHONPATH:@PYTHON_MODULE_DIR@"
 
 for ver in $python_versions; do
 
-    if [[ "$NVCV_FORCE_PYTHON" != 1 && "$NVCV_FORCE_PYTHON" != yes ]]; then
+    if [[ "$FORCE_PYTHON_TESTS" != 1 && "$FORCE_PYTHON_TESTS" != yes ]]; then
         if ! python$ver -c 'import cvcuda'; then
             echo "Skipping python-$ver, CV-CUDA python bindings not installed"
             continue
         fi
     fi
 
-    # Check if python module is exposing only PyInit_cvcuda.
+    # Check if python module is exposing only PyInit__cvcuda.
     # Also provide some helpful info is exposing too much.
-    modfile=$(python$ver -c "import cvcuda; print(cvcuda.__file__)")
+    # Import the actual C++ extension module, not the package
+    modfile=$(python$ver -c "import cvcuda._cvcuda as m; print(m.__file__)")
     pubsyms=$(readelf -sWD $modfile | grep -v ' UND ' | grep ' GLOBAL ')
     if [[ $(echo "$pubsyms" | wc -l) != 1 ]]; then
         echo -e "cvcuda python $ver module is exposing too many symbols:\n$pubsyms"
         exit 3
     fi
-    if ! echo "$pubsyms" | grep PyInit_cvcuda > /dev/null; then
-        echo -e "cvcuda python $ver module must expose symbol PyInit_cvcuda, but instead exposes:\n$pubsyms"
+    if ! echo "$pubsyms" | grep PyInit__cvcuda > /dev/null; then
+        echo -e "cvcuda python $ver module must expose symbol PyInit__cvcuda, but instead exposes:\n$pubsyms"
         exit 4
     fi
 
     # Run python tests
-    NVCV_VERSION="@NVCV_VERSION_FULL@" python$ver -m pytest -v --tb=line -o cache_dir="$tmpdir" "$@" "$tests_dir"
+    CVCUDA_VERSION="@CVCUDA_VERSION_FULL@" python$ver -m pytest -v --tb=line -o cache_dir="$tmpdir" "$@" "$tests_dir"
 done

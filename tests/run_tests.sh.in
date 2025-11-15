@@ -1,6 +1,6 @@
 #!/bin/bash -e
 
-# SPDX-FileCopyrightText: Copyright (c) 2022-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2022-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -56,21 +56,44 @@ trap 'on_exit' EXIT
 function run()
 {
     local testexec=$1
-    local testgroup=$2
+    shift
+    local test_tags=("$@")
 
-    for test in "${test_set[@]}"
+    # Check if all filters in test_set match at least one tag in test_tags
+    local all_filters_matched=true
+    for filter in "${test_set[@]}"
     do
-        if [ "$testgroup" == "$test" ] || [ "$test" == "all" ];then
-            echo "Running $testexec test suite..."
-            set +e
-            NVCV_LEAK_DETECTION=abort "$curdir/$testexec"
-            if [ $? -ne 0 ]; then
-                failure_sets=$failure_sets,$testexec
+        if [ "$filter" == "all" ]; then
+            # "all" filter matches everything
+            continue
+        fi
+
+        # Check if this filter matches any tag
+        local filter_matched=false
+        for tag in "${test_tags[@]}"
+        do
+            if [ "$tag" == "$filter" ]; then
+                filter_matched=true
+                break
             fi
-            set -e
-            return
+        done
+
+        if [ "$filter_matched" == "false" ]; then
+            all_filters_matched=false
+            break
         fi
     done
+
+    if [ "$all_filters_matched" == "true" ]; then
+        echo "Running $testexec test suite..."
+        set +e
+        NVCV_LEAK_DETECTION=abort "$curdir/$testexec"
+        if [ $? -ne 0 ]; then
+            failure_sets=$failure_sets,$testexec
+        fi
+        set -e
+        return
+    fi
 
     echo "Skipping $testexec test suite..."
 }

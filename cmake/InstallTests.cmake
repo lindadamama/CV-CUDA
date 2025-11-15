@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2022-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2022-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,7 +15,9 @@
 
 list(APPEND CPACK_COMPONENTS_ALL tests)
 
-set(CPACK_COMPONENT_TESTS_DISABLED true)
+# Enable tests package when tests are being built
+# This file is only included when BUILD_TESTS, BUILD_TESTS_CPP, BUILD_TESTS_WHEELS, or BUILD_TESTS_PYTHON is ON
+set(CPACK_COMPONENT_TESTS_DISABLED false)
 set(CPACK_COMPONENT_TESTS_DISPLAY_NAME "Tests")
 set(CPACK_COMPONENT_TESTS_DESCRIPTION "NVIDIA CV-CUDA test suite (internal use only)")
 set(CPACK_COMPONENT_TESTS_GROUP internal)

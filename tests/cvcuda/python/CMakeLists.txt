@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2022-2023 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2022-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,7 +16,7 @@
 # sanitized builds of our python module don't work,
 # python interpreter exits with errorcode 1, nothing else
 # is output
-if(ENABLE_SANITIZERS)
+if(ENABLE_SANITIZER)
     return()
 endif()
 
@@ -29,7 +29,7 @@ set(MODULE_DIR ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
 set(PYTHON_TEST_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 string(REPLACE ";" " " PYTHON_TEST_VERSIONS "${PYTHON_VERSIONS}")
 
-set(PYTHON_MODULE_DIR ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/python)
+set(PYTHON_MODULE_DIR ${CMAKE_BINARY_DIR}/python3)
 configure_file(cvcuda_test_python.in ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/cvcuda_test_python @ONLY)
 
 set(PYTHON_TEST_INSTDIR "${CMAKE_INSTALL_DATADIR}/python/cvcuda")
@@ -40,7 +40,15 @@ install(FILES ${SOURCES}
 
 # create the test script that will get installed
 set(PYTHON_TEST_DIR ${CMAKE_INSTALL_PREFIX}/${PYTHON_TEST_INSTDIR})
-set(PYTHON_MODULE_DIR ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR})
+# CRITICAL: Python modules are installed to ${CMAKE_INSTALL_LIBDIR}/python/, not just ${CMAKE_INSTALL_LIBDIR}/
+# The /python suffix is required for the test script to correctly set PYTHONPATH and find cvcuda/nvcv modules.
+# Without this suffix, Python will fail with "ModuleNotFoundError: No module named 'cvcuda'"
+#
+# Why this matters:
+# - DEB packages install to system paths (/usr/lib/python3.X/dist-packages/) which are in Python's default search path
+# - TAR archives install to custom paths (/opt/nvidia/cvcuda*/lib/python/) which require PYTHONPATH to be set
+# - Removing /python will cause TAR tests to fail while DEB tests still pass, making the bug subtle to detect
+set(PYTHON_MODULE_DIR ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/python)
 configure_file(cvcuda_test_python.in cvcuda_test_python @ONLY)
 
-nvcv_add_test(${CMAKE_CURRENT_BINARY_DIR}/cvcuda_test_python cvcuda)
+nvcv_add_test(${CMAKE_CURRENT_BINARY_DIR}/cvcuda_test_python cvcuda python)

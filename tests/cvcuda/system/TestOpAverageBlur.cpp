@@ -268,17 +268,17 @@ TEST_P(OpAverageBlur, varshape_correct_output)
 }
 
 // clang-format off
-NVCV_TEST_SUITE_P(OpAverageBlur_Negative, nvcv::test::ValueList<NVCVStatus, nvcv::ImageFormat, nvcv::ImageFormat, int, int, int, int, NVCVBorderType>{
-    {NVCV_ERROR_INVALID_ARGUMENT, nvcv::FMT_U8, nvcv::FMT_U16, 3, 3, -1, -1, NVCV_BORDER_CONSTANT}, // data type is different
-    {NVCV_ERROR_INVALID_ARGUMENT, nvcv::FMT_RGB8, nvcv::FMT_RGB8p, 3, 3, -1, -1, NVCV_BORDER_CONSTANT}, // data format is different
-    {NVCV_ERROR_INVALID_ARGUMENT, nvcv::FMT_RGB8p, nvcv::FMT_RGB8p, 3, 3, -1, -1, NVCV_BORDER_CONSTANT}, // data format is not kNHWC/kHWC
-    {NVCV_ERROR_INVALID_ARGUMENT, nvcv::FMT_F16, nvcv::FMT_F16, 3, 3, -1, -1, NVCV_BORDER_CONSTANT}, // invalid data type
-    {NVCV_ERROR_INVALID_ARGUMENT, nvcv::FMT_U8, nvcv::FMT_U8, 4, 3, -1, -1, NVCV_BORDER_CONSTANT}, // invalid kernel size
-    {NVCV_ERROR_INVALID_ARGUMENT, nvcv::FMT_U8, nvcv::FMT_U8, 3, 4, -1, -1, NVCV_BORDER_CONSTANT}, // invalid kernel size
-    {NVCV_ERROR_INVALID_ARGUMENT, nvcv::FMT_U8, nvcv::FMT_U8, 3, 3, 4, -2, NVCV_BORDER_CONSTANT}, // invalid kernel anchor
-    {NVCV_ERROR_INVALID_ARGUMENT, nvcv::FMT_U8, nvcv::FMT_U8, 3, 3, -2, 4, NVCV_BORDER_CONSTANT}, // invalid kernel anchor
+NVCV_TEST_SUITE_P(OpAverageBlur_Negative, nvcv::test::ValueList<nvcv::ImageFormat, nvcv::ImageFormat, int, int, int, int, NVCVBorderType>{
+    {nvcv::FMT_U8, nvcv::FMT_U16, 3, 3, -1, -1, NVCV_BORDER_CONSTANT}, // data type is different
+    {nvcv::FMT_RGB8, nvcv::FMT_RGB8p, 3, 3, -1, -1, NVCV_BORDER_CONSTANT}, // data format is different
+    {nvcv::FMT_RGB8p, nvcv::FMT_RGB8p, 3, 3, -1, -1, NVCV_BORDER_CONSTANT}, // data format is not kNHWC/kHWC
+    {nvcv::FMT_F16, nvcv::FMT_F16, 3, 3, -1, -1, NVCV_BORDER_CONSTANT}, // invalid data type
+    {nvcv::FMT_U8, nvcv::FMT_U8, 4, 3, -1, -1, NVCV_BORDER_CONSTANT}, // invalid kernel size
+    {nvcv::FMT_U8, nvcv::FMT_U8, 3, 4, -1, -1, NVCV_BORDER_CONSTANT}, // invalid kernel size
+    {nvcv::FMT_U8, nvcv::FMT_U8, 3, 3, -1, -2, NVCV_BORDER_CONSTANT}, // invalid kernel anchor
+    {nvcv::FMT_U8, nvcv::FMT_U8, 3, 3, -2, -1, NVCV_BORDER_CONSTANT}, // invalid kernel anchor
 #ifndef ENABLE_SANITIZER
-    {NVCV_ERROR_INVALID_ARGUMENT, nvcv::FMT_U8, nvcv::FMT_U8, 3, 3, -1, -1, static_cast<NVCVBorderType>(255)}, // invalid borderType
+    {nvcv::FMT_U8, nvcv::FMT_U8, 3, 3, -1, -1, static_cast<NVCVBorderType>(255)}, // invalid borderType
 #endif
 });
 
@@ -289,14 +289,13 @@ TEST_P(OpAverageBlur_Negative, op)
     cudaStream_t stream;
     ASSERT_EQ(cudaSuccess, cudaStreamCreate(&stream));
 
-    NVCVStatus        expectedReturnCode = GetParamValue<0>();
-    nvcv::ImageFormat inputFmt           = GetParamValue<1>();
-    nvcv::ImageFormat outputFmt          = GetParamValue<2>();
-    int               ksizeX             = GetParamValue<3>();
-    int               ksizeY             = GetParamValue<4>();
-    int               kanchorX           = GetParamValue<5>();
-    int               kanchorY           = GetParamValue<6>();
-    NVCVBorderType    borderMode         = GetParamValue<7>();
+    nvcv::ImageFormat inputFmt   = GetParamValue<0>();
+    nvcv::ImageFormat outputFmt  = GetParamValue<1>();
+    int               ksizeX     = GetParamValue<2>();
+    int               ksizeY     = GetParamValue<3>();
+    int               kanchorX   = GetParamValue<4>();
+    int               kanchorY   = GetParamValue<5>();
+    NVCVBorderType    borderMode = GetParamValue<6>();
 
     int width   = 24;
     int height  = 24;
@@ -313,7 +312,7 @@ TEST_P(OpAverageBlur_Negative, op)
     cvcuda::AverageBlur averageBlurOp(kernelSize, 1);
 
     EXPECT_EQ(
-        expectedReturnCode,
+        NVCV_ERROR_INVALID_ARGUMENT,
         nvcv::ProtectCall([&] { averageBlurOp(stream, inTensor, outTensor, kernelSize, kernelAnchor, borderMode); }));
 }
 
@@ -444,4 +443,9 @@ TEST_P(OpAverageBlurVarshape_Negative, varshape_hasDifferentFormat)
     }
 
     ASSERT_EQ(cudaSuccess, cudaStreamDestroy(stream));
+}
+
+TEST(OpAverageBlur_Negative, create_null_handle)
+{
+    EXPECT_EQ(cvcudaAverageBlurCreate(nullptr, 224, 224, 10), NVCV_ERROR_INVALID_ARGUMENT);
 }

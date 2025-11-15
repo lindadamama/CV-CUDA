@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2023-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2023-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,10 +17,10 @@
 
 #include "DeviceTensorBatchWrap.hpp"
 
+#include <cvcuda/cuda_tools/Compat.hpp>
 #include <cvcuda/cuda_tools/MathOps.hpp>    // for operator == to allow EXPECT_EQ
 #include <cvcuda/cuda_tools/StaticCast.hpp> // for StaticCast, etc.
-#include <cvcuda/cuda_tools/TypeTraits.hpp>
-#include <gtest/gtest.h> // for EXPECT_EQ, etc.
+#include <gtest/gtest.h>                    // for EXPECT_EQ, etc.
 
 namespace cuda = nvcv::cuda;
 
@@ -127,7 +127,7 @@ void SetReference(TensorBatchWrapT wrap, cudaStream_t stream)
 #define TB_PARAMS1 uchar1, -1, 32 * sizeof(uchar1), sizeof(uchar1)
 SetReferenceSpec(SetThroughTensor, cuda::TensorBatchWrap<TB_PARAMS1>);
 
-#define TB_PARAMS2 double4, 8 * sizeof(double4), sizeof(double4)
+#define TB_PARAMS2 double4_16a, 8 * sizeof(double4_16a), sizeof(double4_16a)
 SetReferenceSpec(SetThroughTensor, cuda::TensorBatchWrap<TB_PARAMS2>);
 
 #define TB_PARAMS3 float3, -1, -1, 8 * sizeof(float3), sizeof(float3)

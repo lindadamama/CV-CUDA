@@ -514,6 +514,7 @@ NVCV_TEST_SUITE_P(OpJointBilateralFilter_Negative, nvcv::test::ValueList<NVCVSta
     {NVCV_ERROR_INVALID_ARGUMENT, nvcv::FMT_RGB8p, nvcv::FMT_RGB8, nvcv::FMT_RGB8, NVCV_BORDER_CONSTANT}, // in/out data format not same
     {NVCV_ERROR_INVALID_ARGUMENT, nvcv::FMT_RGB8, nvcv::FMT_RGB8p, nvcv::FMT_RGB8, NVCV_BORDER_CONSTANT}, // inColor/out data format not same
     {NVCV_ERROR_INVALID_ARGUMENT, nvcv::FMT_RGB8p, nvcv::FMT_RGB8p, nvcv::FMT_RGB8p, NVCV_BORDER_CONSTANT}, // input not kHWC/kNHWC
+    {NVCV_ERROR_INVALID_ARGUMENT, nvcv::FMT_RGB8, nvcv::FMT_RGB8, nvcv::FMT_RGB8p, NVCV_BORDER_CONSTANT}, // inColor not kHWC/kNHWC
 #ifndef ENABLE_SANITIZER
     {NVCV_ERROR_INVALID_ARGUMENT, nvcv::FMT_U8, nvcv::FMT_U8, nvcv::FMT_U8, static_cast<NVCVBorderType>(255)}, // invalid border type
 #endif
@@ -763,4 +764,9 @@ TEST(OpJointBilateralFilter_Negative, varshape_hasDifferentFormat)
         EXPECT_EQ(cudaSuccess, cudaStreamSynchronize(stream));
         EXPECT_EQ(cudaSuccess, cudaStreamDestroy(stream));
     }
+}
+
+TEST(OpJointBilateralFilter_Negative, create_null_handle)
+{
+    EXPECT_EQ(cvcudaJointBilateralFilterCreate(nullptr), NVCV_ERROR_INVALID_ARGUMENT);
 }

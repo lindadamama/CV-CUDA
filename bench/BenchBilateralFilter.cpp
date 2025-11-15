@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2023-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2023-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -66,9 +66,9 @@ try
         nvcv::Tensor sigmaSpaceTensor({{shape.x}, "N"}, nvcv::TYPE_F32);
         nvcv::Tensor sigmaColorTensor({{shape.x}, "N"}, nvcv::TYPE_F32);
 
-        benchutils::FillTensor<int>(diameterTensor, [&diameter](const long4 &){ return diameter; });
-        benchutils::FillTensor<float>(sigmaSpaceTensor, [&sigmaSpace](const long4 &){ return sigmaSpace; });
-        benchutils::FillTensor<float>(sigmaColorTensor, [&sigmaColor](const long4 &){ return sigmaColor; });
+        benchutils::FillTensor<int>(diameterTensor, [&diameter](auto &){ return diameter; });
+        benchutils::FillTensor<float>(sigmaSpaceTensor, [&sigmaSpace](auto &){ return sigmaSpace; });
+        benchutils::FillTensor<float>(sigmaColorTensor, [&sigmaColor](auto &){ return sigmaColor; });
 
         state.exec(nvbench::exec_tag::sync,
                    [&op, &src, &dst, &diameterTensor, &sigmaColorTensor, &sigmaSpaceTensor, &borderType]

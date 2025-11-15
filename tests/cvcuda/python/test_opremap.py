@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2023 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2023-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,12 +14,11 @@
 # limitations under the License.
 
 import torch
-import nvcv
+
 import cvcuda
 import pytest as t
 import numpy as np
 import cvcuda_util as util
-
 
 RNG = np.random.default_rng(0)
 MAPS = {
@@ -71,20 +70,20 @@ REF_SHAPE["default"] = REF_SHAPE["absolute"]
     "src_args, map_args",
     [
         (
-            ((5, 16, 23, 3), nvcv.Type.U8, "NHWC"),
-            ((5, 17, 13, 2), nvcv.Type.F32, "NHWC"),
+            ((5, 16, 23, 3), cvcuda.Type.U8, "NHWC"),
+            ((5, 17, 13, 2), cvcuda.Type.F32, "NHWC"),
         ),
         (
-            ((5, 33, 28, 4), nvcv.Type.U8, "NHWC"),
-            ((1, 22, 18, 1), nvcv.Type._2F32, "NHWC"),
+            ((5, 33, 28, 4), cvcuda.Type.U8, "NHWC"),
+            ((1, 22, 18, 1), cvcuda.Type._2F32, "NHWC"),
         ),
         (
-            ((13, 21, 1), nvcv.Type._3U8, "HWC"),
-            ((22, 11, 2), nvcv.Type.F32, "HWC"),
+            ((13, 21, 1), cvcuda.Type._3U8, "HWC"),
+            ((22, 11, 2), cvcuda.Type.F32, "HWC"),
         ),
         (
-            ((13, 21, 1), nvcv.Type._4U8, "HWC"),
-            ((11, 22, 1), nvcv.Type._2F32, "HWC"),
+            ((13, 21, 1), cvcuda.Type._4U8, "HWC"),
+            ((11, 22, 1), cvcuda.Type._2F32, "HWC"),
         ),
     ],
 )
@@ -135,20 +134,34 @@ def test_op_remap_api(src_args, map_args):
 @t.mark.parametrize(
     "map_type, map_kind, num_maps, num_imgs, img_size, img_format",
     [
-        (cvcuda.Remap.RELATIVE_NORMALIZED, "ident", 1, 7, (12, 32), nvcv.Format.RGBA8),
-        (cvcuda.Remap.RELATIVE_NORMALIZED, "ident", 4, 4, (13, 21), nvcv.Format.BGRA8),
-        (cvcuda.Remap.RELATIVE_NORMALIZED, "ident", 1, 3, (27, 42), nvcv.Format.HSV8),
-        (cvcuda.Remap.RELATIVE_NORMALIZED, "ident", 6, 6, (18, 39), nvcv.Format.BGR8),
-        (cvcuda.Remap.RELATIVE_NORMALIZED, "flipH", 1, 4, (2, 2), nvcv.Format.RGB8),
-        (cvcuda.Remap.RELATIVE_NORMALIZED, "flipV", 1, 3, (2, 2), nvcv.Format.RGB8),
-        (cvcuda.Remap.RELATIVE_NORMALIZED, "flipB", 1, 2, (2, 2), nvcv.Format.RGB8),
-        (cvcuda.Remap.ABSOLUTE, "ident", 1, 3, (11, 33), nvcv.Format.RGBA8),
-        (cvcuda.Remap.ABSOLUTE, "ident", 2, 2, (13, 22), nvcv.Format.BGRA8),
-        (cvcuda.Remap.ABSOLUTE, "ident", 1, 4, (26, 41), nvcv.Format.HSV8),
-        (cvcuda.Remap.ABSOLUTE, "ident", 1, 1, (99, 88), nvcv.Format.RGB8),
-        (cvcuda.Remap.ABSOLUTE, "flipH", 1, 5, (16, 33), nvcv.Format.RGB8),
-        (cvcuda.Remap.ABSOLUTE, "flipV", 2, 2, (15, 32), nvcv.Format.RGB8),
-        (cvcuda.Remap.ABSOLUTE, "flipB", 1, 8, (13, 13), nvcv.Format.RGB8),
+        (
+            cvcuda.Remap.RELATIVE_NORMALIZED,
+            "ident",
+            1,
+            7,
+            (12, 32),
+            cvcuda.Format.RGBA8,
+        ),
+        (
+            cvcuda.Remap.RELATIVE_NORMALIZED,
+            "ident",
+            4,
+            4,
+            (13, 21),
+            cvcuda.Format.BGRA8,
+        ),
+        (cvcuda.Remap.RELATIVE_NORMALIZED, "ident", 1, 3, (27, 42), cvcuda.Format.HSV8),
+        (cvcuda.Remap.RELATIVE_NORMALIZED, "ident", 6, 6, (18, 39), cvcuda.Format.BGR8),
+        (cvcuda.Remap.RELATIVE_NORMALIZED, "flipH", 1, 4, (2, 2), cvcuda.Format.RGB8),
+        (cvcuda.Remap.RELATIVE_NORMALIZED, "flipV", 1, 3, (2, 2), cvcuda.Format.RGB8),
+        (cvcuda.Remap.RELATIVE_NORMALIZED, "flipB", 1, 2, (2, 2), cvcuda.Format.RGB8),
+        (cvcuda.Remap.ABSOLUTE, "ident", 1, 3, (11, 33), cvcuda.Format.RGBA8),
+        (cvcuda.Remap.ABSOLUTE, "ident", 2, 2, (13, 22), cvcuda.Format.BGRA8),
+        (cvcuda.Remap.ABSOLUTE, "ident", 1, 4, (26, 41), cvcuda.Format.HSV8),
+        (cvcuda.Remap.ABSOLUTE, "ident", 1, 1, (99, 88), cvcuda.Format.RGB8),
+        (cvcuda.Remap.ABSOLUTE, "flipH", 1, 5, (16, 33), cvcuda.Format.RGB8),
+        (cvcuda.Remap.ABSOLUTE, "flipV", 2, 2, (15, 32), cvcuda.Format.RGB8),
+        (cvcuda.Remap.ABSOLUTE, "flipB", 1, 8, (13, 13), cvcuda.Format.RGB8),
     ],
 )
 def test_op_remap_content(map_type, map_kind, num_maps, num_imgs, img_size, img_format):
@@ -159,8 +172,8 @@ def test_op_remap_content(map_type, map_kind, num_maps, num_imgs, img_size, img_
         [MAPS[map_type][map_kind](img_size[0], img_size[1]) for _ in range(num_maps)]
     )
 
-    t_map = util.to_nvcv_tensor(a_map, "NHWC")
-    t_src = util.to_nvcv_tensor(a_src, "NHWC")
+    t_map = util.to_cvcuda_tensor(a_map, "NHWC")
+    t_src = util.to_cvcuda_tensor(a_src, "NHWC")
 
     t_dst = cvcuda.remap(t_src, t_map, map_type=map_type)
 
@@ -174,15 +187,15 @@ def test_op_remap_content(map_type, map_kind, num_maps, num_imgs, img_size, img_
 @t.mark.parametrize(
     "num_images, img_format, max_size",
     [
-        (4, nvcv.Format.Y8, (73, 98)),
-        (11, nvcv.Format.RGB8, (33, 32)),
-        (8, nvcv.Format.RGBA8, (13, 42)),
-        (3, nvcv.Format.F32, (53, 68)),
+        (4, cvcuda.Format.Y8, (73, 98)),
+        (11, cvcuda.Format.RGB8, (33, 32)),
+        (8, cvcuda.Format.RGBA8, (13, 42)),
+        (3, cvcuda.Format.F32, (53, 68)),
     ],
 )
 def test_op_remapvarshape_api(num_images, img_format, max_size):
     b_src = util.create_image_batch(num_images, img_format, max_size=max_size, rng=RNG)
-    t_map = cvcuda.Tensor((1, max_size[1], max_size[0], 1), nvcv.Type._2F32, "NHWC")
+    t_map = cvcuda.Tensor((1, max_size[1], max_size[0], 1), cvcuda.Type._2F32, "NHWC")
 
     b_dst = cvcuda.remap(b_src, t_map)
     assert len(b_dst) == len(b_src)
@@ -190,7 +203,7 @@ def test_op_remapvarshape_api(num_images, img_format, max_size):
     assert b_dst.uniqueformat == b_src.uniqueformat
     assert b_dst.maxsize == max_size
 
-    stream = cvcuda.cuda.Stream()
+    stream = cvcuda.Stream()
     b_dst = util.clone_image_batch(b_src)
     b_tmp = cvcuda.remap_into(
         src=b_src,
@@ -210,8 +223,8 @@ def test_op_remapvarshape_api(num_images, img_format, max_size):
 @t.mark.parametrize(
     "map_type, img_size, img_format",
     [
-        (cvcuda.Remap.ABSOLUTE, (33, 65), nvcv.Format.RGB8),
-        (cvcuda.Remap.RELATIVE_NORMALIZED, (2, 2), nvcv.Format.RGB8),
+        (cvcuda.Remap.ABSOLUTE, (33, 65), cvcuda.Format.RGB8),
+        (cvcuda.Remap.RELATIVE_NORMALIZED, (2, 2), cvcuda.Format.RGB8),
     ],
 )
 def test_op_remapvarshape_content(map_type, img_size, img_format):
@@ -219,10 +232,10 @@ def test_op_remapvarshape_content(map_type, img_size, img_format):
 
     a_img = util.create_image_pattern(img_size, img_format)
 
-    b_src = nvcv.ImageBatchVarShape(num_imgs)
+    b_src = cvcuda.ImageBatchVarShape(num_imgs)
 
     for i in range(num_imgs):
-        b_src.pushback(util.to_nvcv_image(a_img))
+        b_src.pushback(util.to_cvcuda_image(a_img))
 
     a_map = np.stack(
         [
@@ -231,7 +244,7 @@ def test_op_remapvarshape_content(map_type, img_size, img_format):
         ]
     )
 
-    t_map = util.to_nvcv_tensor(a_map, "NHWC")
+    t_map = util.to_cvcuda_tensor(a_map, "NHWC")
 
     b_dst = cvcuda.remap(b_src, t_map, map_type=map_type)
 

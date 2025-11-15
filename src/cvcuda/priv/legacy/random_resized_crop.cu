@@ -1,4 +1,4 @@
-/* Copyright (c) 2021-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+/* Copyright (c) 2021-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  *
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
  * SPDX-License-Identifier: Apache-2.0
@@ -23,6 +23,7 @@
 
 #include "CvCudaUtils.cuh"
 
+#include <cvcuda/cuda_tools/Compat.hpp>
 #include <cvcuda/cuda_tools/MathWrappers.hpp>
 
 #include <cmath>
@@ -74,7 +75,8 @@ inline const __device__ ValueType *_cacheAlignedBufferedRead(SrcWrapper srcImage
             const int skew = ((size_t)pixSrcPtr) & M; //byte offset for nXPosMin
             int       i    = 0;
             if (M >= 31) //256-bit align, 32 bytes at a time
-                for (; i < nWordsToRead; i += 8) *((double4 *)(&pReadBuffer[i])) = *((double4 *)(&memSrcPtr[i]));
+                for (; i < nWordsToRead; i += 8)
+                    *((double4_16a *)(&pReadBuffer[i])) = *((double4_16a *)(&memSrcPtr[i]));
             if (M == 15) //128-bit align, 16 bytes at a time
                 for (; i < nWordsToRead; i += 4) *((float4 *)(&pReadBuffer[i])) = *((float4 *)(&memSrcPtr[i]));
             if (M == 7) //64-bit align, 8 bytes at a time

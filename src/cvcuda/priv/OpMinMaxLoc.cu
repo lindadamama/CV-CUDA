@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2023-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2023-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -79,12 +79,14 @@ struct OutputWrapper2
 template<typename T>
 auto OutputWrapper(T &&w0)
 {
+    // coverity[use_after_move]
     return OutputWrapper1(std::move(w0));
 }
 
 template<typename T>
 auto OutputWrapper(T &&w0, T &&w1)
 {
+    // coverity[use_after_move]
     return OutputWrapper2(std::move(w0), std::move(w1));
 }
 
@@ -709,7 +711,7 @@ inline void RunMinMaxLocDataIn(cudaStream_t stream, const DataStridedCuda &inDat
     {
         return;
     }
-    if (inNumSamples < 0 && inNumSamples > 65535)
+    if (inNumSamples < 0 || inNumSamples > 65535)
     {
         throw nvcv::Exception(nvcv::Status::ERROR_INVALID_ARGUMENT,
                               "Invalid number of samples in the input %d must be in [0, 65535]", inNumSamples);
@@ -797,7 +799,7 @@ inline void RunMinMaxLocDataIn(cudaStream_t stream, const DataStridedCuda &inDat
             throw nvcv::Exception(nvcv::Status::ERROR_INVALID_ARGUMENT,
                                   "Output numMin number of samples must be the same as input tensor");
         }
-        if (numMinData->rank() == 2 && minValData->shape(1) != 1)
+        if (numMinData->rank() == 2 && numMinData->shape(1) != 1)
         {
             throw nvcv::Exception(nvcv::Status::ERROR_INVALID_ARGUMENT,
                                   "Output numMin number of channels must be 1, not %ld", numMinData->shape(1));
@@ -876,7 +878,7 @@ inline void RunMinMaxLocDataIn(cudaStream_t stream, const DataStridedCuda &inDat
             throw nvcv::Exception(nvcv::Status::ERROR_INVALID_ARGUMENT,
                                   "Output numMax number of samples must be the same as input tensor");
         }
-        if (numMaxData->rank() == 2 && maxValData->shape(1) != 1)
+        if (numMaxData->rank() == 2 && numMaxData->shape(1) != 1)
         {
             throw nvcv::Exception(nvcv::Status::ERROR_INVALID_ARGUMENT,
                                   "Output numMax number of channels must be 1, not %ld", numMaxData->shape(1));

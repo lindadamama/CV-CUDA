@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2023 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2023-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -44,7 +44,7 @@ try
         nvcv::Tensor hist({{shape.x, numBins, 1}, "HWC"}, nvcv::TYPE_S32);
 
         benchutils::FillTensor<T>(src, benchutils::RandomValues<T>());
-        benchutils::FillTensor<int>(hist, [](const long4 &){ return 0; });
+        benchutils::FillTensor<int>(hist, [](auto &){ return 0; });
 
         state.exec(nvbench::exec_tag::sync, [&op, &src, &mask, &hist](nvbench::launch &launch)
         {

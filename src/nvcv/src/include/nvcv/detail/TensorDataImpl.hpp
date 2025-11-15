@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2022-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2022-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -43,6 +43,13 @@ inline const TensorShape &TensorData::shape() const &
     if (!m_cacheShape)
     {
         const NVCVTensorData &data = this->cdata();
+        // coverity[overrun-buffer-val] - data.rank validated below, cannot exceed NVCV_TENSOR_MAX_RANK
+        if (data.rank < 0 || data.rank > NVCV_TENSOR_MAX_RANK)
+        {
+            throw Exception(Status::ERROR_INVALID_ARGUMENT, "Tensor rank %d is out of valid range [0,%d]", data.rank,
+                            NVCV_TENSOR_MAX_RANK);
+        }
+        // coverity[overrun-buffer-val] - data.rank validated above, cannot exceed NVCV_TENSOR_MAX_RANK
         m_cacheShape.emplace(data.shape, data.rank, data.layout);
     }
 

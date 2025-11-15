@@ -23,7 +23,7 @@ endif()
 
 project(cvcuda
         LANGUAGES C CXX
-        VERSION 0.15.0
+        VERSION 0.16.0
         DESCRIPTION "CUDA-accelerated Computer Vision algorithms"
 )
 
@@ -45,12 +45,60 @@ if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
     set(CMAKE_INSTALL_PREFIX "/opt/nvidia/cvcuda${PROJECT_VERSION_MAJOR}" CACHE PATH "where cvcuda will be installed" FORCE)
 endif()
 
+# Save command-line values before option() resets them
+set(_BUILD_TESTS_CPP_CMDLINE ${BUILD_TESTS_CPP})
+set(_BUILD_TESTS_WHEELS_CMDLINE ${BUILD_TESTS_WHEELS})
+set(_BUILD_TESTS_PYTHON_CMDLINE ${BUILD_TESTS_PYTHON})
+
 # Options to configure the build tree =======
-option(BUILD_TESTS "Enable testsuite" OFF)
-option(BUILD_PYTHON "Build python bindings" OFF)
+option(BUILD_TESTS "Enable testsuite" ON)
+option(BUILD_TESTS_CPP "Build C++ tests" OFF)
+option(BUILD_TESTS_WHEELS "Generate test_wheels.sh script" OFF)
+option(BUILD_TESTS_PYTHON "Build Python tests" OFF)
+option(BUILD_PYTHON "Build python bindings" ON)
 option(BUILD_BENCH "Build benchmark" OFF)
 option(BUILD_DOCS "Build documentation" OFF)
 option(ENABLE_SANITIZER "Enabled sanitized build" OFF)
+
+# BUILD_TESTS enables all test sub-options by default, but respects explicit overrides
+# Normalize command-line values to uppercase for proper boolean comparison
+string(TOUPPER "${_BUILD_TESTS_CPP_CMDLINE}" _BUILD_TESTS_CPP_CMDLINE_UPPER)
+string(TOUPPER "${_BUILD_TESTS_WHEELS_CMDLINE}" _BUILD_TESTS_WHEELS_CMDLINE_UPPER)
+string(TOUPPER "${_BUILD_TESTS_PYTHON_CMDLINE}" _BUILD_TESTS_PYTHON_CMDLINE_UPPER)
+
+# Define patterns for CMake boolean values (supports both numeric and string forms)
+set(_CMAKE_BOOL_TRUE_PATTERN "^(1|ON|YES|TRUE|Y)$")
+set(_CMAKE_BOOL_FALSE_PATTERN "^(0|OFF|NO|FALSE|N)$")
+
+if(BUILD_TESTS)
+    # Enable sub-options unless explicitly set to a false value on command line
+    if(NOT _BUILD_TESTS_CPP_CMDLINE_UPPER MATCHES "${_CMAKE_BOOL_FALSE_PATTERN}")
+        set(BUILD_TESTS_CPP ON CACHE BOOL "Build C++ tests (enabled by BUILD_TESTS)" FORCE)
+    endif()
+    if(NOT _BUILD_TESTS_WHEELS_CMDLINE_UPPER MATCHES "${_CMAKE_BOOL_FALSE_PATTERN}")
+        set(BUILD_TESTS_WHEELS ON CACHE BOOL "Generate test_wheels.sh (enabled by BUILD_TESTS)" FORCE)
+    endif()
+    if(NOT _BUILD_TESTS_PYTHON_CMDLINE_UPPER MATCHES "${_CMAKE_BOOL_FALSE_PATTERN}")
+        set(BUILD_TESTS_PYTHON ON CACHE BOOL "Build Python tests (enabled by BUILD_TESTS)" FORCE)
+    endif()
+else()
+    # If BUILD_TESTS is OFF, disable all test sub-options unless explicitly set to a true value
+    if(_BUILD_TESTS_CPP_CMDLINE_UPPER MATCHES "${_CMAKE_BOOL_TRUE_PATTERN}")
+        set(BUILD_TESTS_CPP ON CACHE BOOL "Build C++ tests (explicitly enabled)" FORCE)
+    else()
+        set(BUILD_TESTS_CPP OFF CACHE BOOL "Build C++ tests (disabled by BUILD_TESTS=OFF)" FORCE)
+    endif()
+    if(_BUILD_TESTS_WHEELS_CMDLINE_UPPER MATCHES "${_CMAKE_BOOL_TRUE_PATTERN}")
+        set(BUILD_TESTS_WHEELS ON CACHE BOOL "Generate test_wheels.sh (explicitly enabled)" FORCE)
+    else()
+        set(BUILD_TESTS_WHEELS OFF CACHE BOOL "Generate test_wheels.sh (disabled by BUILD_TESTS=OFF)" FORCE)
+    endif()
+    if(_BUILD_TESTS_PYTHON_CMDLINE_UPPER MATCHES "${_CMAKE_BOOL_TRUE_PATTERN}")
+        set(BUILD_TESTS_PYTHON ON CACHE BOOL "Build Python tests (explicitly enabled)" FORCE)
+    else()
+        set(BUILD_TESTS_PYTHON OFF CACHE BOOL "Build Python tests (disabled by BUILD_TESTS=OFF)" FORCE)
+    endif()
+endif()
 
 # Configure build tree ======================
 
@@ -75,16 +123,12 @@ if(BUILD_PYTHON)
     include(BuildPython)
 endif()
 
-if(BUILD_TESTS)
+if(BUILD_TESTS_CPP OR BUILD_TESTS_WHEELS OR BUILD_TESTS_PYTHON)
     add_subdirectory(tests)
 endif()
 
 if(BUILD_DOCS)
     add_subdirectory(docs)
-endif()
-
-if(BUILD_SAMPLES)
-    add_subdirectory(samples)
 endif()
 
 if(BUILD_BENCH)

@@ -940,10 +940,9 @@ NVCV_TEST_SUITE_P(OpPillowResize, test::ValueList<int, int, int, int, NVCVInterp
 {
     // srcWidth, srcHeight, dstWidth, dstHeight,       interpolation, numberImages, imageFormat
     {        5,          5,        5,         5,  NVCV_INTERP_LINEAR,           1, nvcv::FMT_RGB8},
-    {        8,          8,        4,         4,  NVCV_INTERP_LINEAR,           1, nvcv::FMT_S8},
+    {        8,          8,       16,        16,  NVCV_INTERP_LINEAR,           1, nvcv::FMT_RGB8},
     {       16,         16,        8,         8,  NVCV_INTERP_LINEAR,           1, nvcv::FMT_U16},
-    {       16,         16,       12,        12,  NVCV_INTERP_LINEAR,           1, nvcv::FMT_S16},
-    {       32,         32,        8,         8,  NVCV_INTERP_LINEAR,           1, nvcv::FMT_S32},
+    {       16,         16,        8,         8,  NVCV_INTERP_LINEAR,           1, nvcv::FMT_S16},
     {        5,          5,        5,         5,  NVCV_INTERP_LINEAR,           1, nvcv::FMT_RGBf32},
     {        10,        10,        5,         5,  NVCV_INTERP_LINEAR,           1, nvcv::FMT_RGB8},
     {        42,        40,       21,        20,  NVCV_INTERP_LINEAR,           1, nvcv::FMT_RGB8},
@@ -1078,6 +1077,10 @@ TEST_P(OpPillowResize, tensor_correct_output)
         StartTest<uint8_t>(srcWidth, srcHeight, dstWidth, dstHeight, interpolation, numberOfImages, fmt);
     else if (nvcv::FMT_RGBf32 == fmt || nvcv::FMT_RGBAf32 == fmt)
         StartTest<float>(srcWidth, srcHeight, dstWidth, dstHeight, interpolation, numberOfImages, fmt);
+    else if (nvcv::FMT_S16 == fmt)
+        StartTest<int16_t>(srcWidth, srcHeight, dstWidth, dstHeight, interpolation, numberOfImages, fmt);
+    else if (nvcv::FMT_U16 == fmt)
+        StartTest<uint16_t>(srcWidth, srcHeight, dstWidth, dstHeight, interpolation, numberOfImages, fmt);
 }
 
 template<typename T>
@@ -1099,8 +1102,16 @@ void StartVarShapeTest(int srcWidthBase, int srcHeightBase, int dstWidthBase, in
     std::vector<nvcv::Size2D> srcSizes, dstSizes;
     for (int i = 0; i < numberOfImages; ++i)
     {
-        imgSrc.emplace_back(nvcv::Size2D{rndSrcWidth(randEng), rndSrcHeight(randEng)}, fmt);
-        imgDst.emplace_back(nvcv::Size2D{rndDstWidth(randEng), rndDstHeight(randEng)}, fmt);
+        if (i == 0)
+        {
+            imgSrc.emplace_back(nvcv::Size2D{srcWidthBase, srcHeightBase}, fmt);
+            imgDst.emplace_back(nvcv::Size2D{dstWidthBase, dstHeightBase}, fmt);
+        }
+        else
+        {
+            imgSrc.emplace_back(nvcv::Size2D{rndSrcWidth(randEng), rndSrcHeight(randEng)}, fmt);
+            imgDst.emplace_back(nvcv::Size2D{rndDstWidth(randEng), rndDstHeight(randEng)}, fmt);
+        }
         srcSizes.emplace_back(imgSrc.back().size());
         dstSizes.emplace_back(imgDst.back().size());
     }
@@ -1221,6 +1232,10 @@ TEST_P(OpPillowResize, varshape_correct_output)
         StartVarShapeTest<uint8_t>(srcWidth, srcHeight, dstWidth, dstHeight, interpolation, numberOfImages, fmt);
     else if (nvcv::FMT_RGBf32 == fmt || nvcv::FMT_RGBAf32 == fmt)
         StartVarShapeTest<float>(srcWidth, srcHeight, dstWidth, dstHeight, interpolation, numberOfImages, fmt);
+    else if (nvcv::FMT_S16 == fmt)
+        StartVarShapeTest<int16_t>(srcWidth, srcHeight, dstWidth, dstHeight, interpolation, numberOfImages, fmt);
+    else if (nvcv::FMT_U16 == fmt)
+        StartVarShapeTest<uint16_t>(srcWidth, srcHeight, dstWidth, dstHeight, interpolation, numberOfImages, fmt);
 }
 
 // clang-format off

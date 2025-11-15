@@ -356,3 +356,8 @@ TEST(OpConv2D_Negative, varshape_hasDifferentFormat)
 
     EXPECT_EQ(cudaSuccess, cudaStreamDestroy(stream));
 }
+
+TEST(OpConv2D_Negative, create_with_null_handle)
+{
+    EXPECT_EQ(NVCV_ERROR_INVALID_ARGUMENT, cvcudaConv2DCreate(nullptr));
+}

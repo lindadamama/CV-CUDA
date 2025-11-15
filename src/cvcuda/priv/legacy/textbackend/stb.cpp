@@ -212,7 +212,27 @@ static TrueTypeFontInternal *load_true_type_font(istream &infile, int file_size)
 
 static string get_ttf_path_from_family_name(const char *_font_family)
 {
-    auto files = find_files("/usr/share/fonts/truetype", ".ttf", true);
+    // Search multiple common font directories for better Linux distribution compatibility
+    // - Debian/Ubuntu: /usr/share/fonts/truetype
+    // - RHEL/AlmaLinux/CentOS: /usr/share/fonts/dejavu, /usr/share/fonts/liberation
+    // - Generic fallback: /usr/share/fonts (recursive search)
+    vector<string> search_paths = {
+        "/usr/share/fonts/truetype",   // Debian/Ubuntu
+        "/usr/share/fonts/dejavu",     // RHEL/AlmaLinux
+        "/usr/share/fonts/liberation", // RHEL/AlmaLinux alternative
+        "/usr/share/fonts"             // Generic fallback (will search all subdirectories)
+    };
+
+    vector<tuple<string, string>> files;
+    for (const auto &search_path : search_paths)
+    {
+        auto found_files = find_files(search_path.c_str(), ".ttf", true);
+        files.insert(files.end(), found_files.begin(), found_files.end());
+        // If we found files, we can stop searching additional paths
+        if (!files.empty())
+            break;
+    }
+
     if (files.empty())
         return "";
 
@@ -312,9 +332,9 @@ private:
 public:
     StbTrueTypeBackend()
     {
-        int temp_size   = MAX_FONT_SIZE * 2;
-        this->temp_size = temp_size;
-        this->single_word_bitmap.reset(new Memory<unsigned char>);
+        int temp_size            = MAX_FONT_SIZE * 2;
+        this->temp_size          = temp_size;
+        this->single_word_bitmap = std::make_unique<Memory<unsigned char>>();
         this->single_word_bitmap->alloc_or_resize_to(temp_size * temp_size);
         memset(this->single_word_bitmap->host(), 0, this->single_word_bitmap->bytes());
     }
@@ -557,7 +577,7 @@ public:
         }
 
         if (this->text_bitmap == nullptr)
-            this->text_bitmap.reset(new Memory<unsigned char>());
+            this->text_bitmap = std::make_unique<Memory<unsigned char>>();
         this->text_bitmap_width  = total_glyph_width;
         this->text_bitmap_height = max_glyph_height;
         this->text_bitmap->alloc_or_resize_to(total_glyph_width * max_glyph_height);

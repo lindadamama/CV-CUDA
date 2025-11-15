@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2023-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2023-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -103,15 +103,17 @@ static void runOp(cudaStream_t &stream, cvcuda::BndBox &op, int &inN, int &inW, 
         for (int i = 0; i < num; i++)
         {
             NVCVBndBoxI bndBox;
-            bndBox.box.x       = randl(0, inW - 1);
-            bndBox.box.y       = randl(0, inH - 1);
-            bndBox.box.width   = randl(1, inW);
-            bndBox.box.height  = randl(1, inH);
-            bndBox.thickness   = randl(-1, 30);
-            bndBox.fillColor   = {(unsigned char)randl(0, 255), (unsigned char)randl(0, 255),
-                                  (unsigned char)randl(0, 255), (unsigned char)randl(0, 255)};
+            bndBox.box.x      = randl(0, inW - 1);
+            bndBox.box.y      = randl(0, inH - 1);
+            bndBox.box.width  = randl(1, inW);
+            bndBox.box.height = randl(1, inH);
+            bndBox.thickness  = randl(-1, 30);
+            bndBox.fillColor  = {(unsigned char)randl(0, 255), (unsigned char)randl(0, 255),
+                                 (unsigned char)randl(0, 255), (unsigned char)randl(0, 255)};
+            // Note: borderColor.a must be >= 1 to avoid corner case where 3rd party cuOSD library
+            // (used for gold generation) has a bug with borderColor.a=0 preventing fill from being drawn
             bndBox.borderColor = {(unsigned char)randl(0, 255), (unsigned char)randl(0, 255),
-                                  (unsigned char)randl(0, 255), (unsigned char)randl(0, 255)};
+                                  (unsigned char)randl(0, 255), (unsigned char)randl(1, 255)}; // alpha: 1-255
             curVec.push_back(bndBox);
         }
         bndBoxVec.push_back(curVec);
@@ -209,5 +211,75 @@ TEST(OpBndBox, BndBox_memory)
     //check if data is cleared
     sed++;
     runOp(stream, op, inN, inW, inH, num, sed, format);
+    EXPECT_EQ(cudaSuccess, cudaStreamDestroy(stream));
+}
+
+// clang-format off
+NVCV_TEST_SUITE_P(OpBndBox_Negative, test::ValueList<nvcv::ImageFormat, nvcv::ImageFormat, int, int, int>
+    {
+        {nvcv::FMT_RGB8p, nvcv::FMT_RGB8, 10, 10, 10},
+        {nvcv::FMT_RGB8, nvcv::FMT_RGB8p, 10, 10, 10},
+        {nvcv::FMT_RGB8, nvcv::FMT_RGBf32, 10, 10, 10},
+        {nvcv::FMT_RGB8, nvcv::FMT_RGB8, 10, 8, 10},
+        {nvcv::FMT_RGB8, nvcv::FMT_RGB8, 10, 10, 8},
+    });
+
+// clang-format on
+
+TEST(OpBndBox_Negative, create_with_null_handle)
+{
+    EXPECT_EQ(NVCV_ERROR_INVALID_ARGUMENT, cvcudaBndBoxCreate(nullptr));
+}
+
+TEST_P(OpBndBox_Negative, invalid_parameters)
+{
+    cudaStream_t stream;
+    ASSERT_EQ(cudaSuccess, cudaStreamCreate(&stream));
+
+    nvcv::ImageFormat inFormat  = GetParamValue<0>();
+    nvcv::ImageFormat outFormat = GetParamValue<1>();
+    int               inN       = GetParamValue<2>();
+    int               outN      = GetParamValue<3>();
+    int               bboxesN   = GetParamValue<4>();
+
+    int inW = 224;
+    int inH = 224;
+    int num = 50;
+
+    std::vector<std::vector<NVCVBndBoxI>> bndBoxVec;
+
+    srand(0);
+    for (int n = 0; n < bboxesN; n++)
+    {
+        std::vector<NVCVBndBoxI> curVec;
+        for (int i = 0; i < num; i++)
+        {
+            NVCVBndBoxI bndBox;
+            bndBox.box.x      = randl(0, inW - 1);
+            bndBox.box.y      = randl(0, inH - 1);
+            bndBox.box.width  = randl(1, inW);
+            bndBox.box.height = randl(1, inH);
+            bndBox.thickness  = randl(-1, 30);
+            bndBox.fillColor  = {(unsigned char)randl(0, 255), (unsigned char)randl(0, 255),
+                                 (unsigned char)randl(0, 255), (unsigned char)randl(0, 255)};
+            // Note: borderColor.a must be >= 1 to avoid corner case where 3rd party cuOSD library
+            // (used for gold generation) has a bug with borderColor.a=0 preventing fill from being drawn
+            bndBox.borderColor = {(unsigned char)randl(0, 255), (unsigned char)randl(0, 255),
+                                  (unsigned char)randl(0, 255), (unsigned char)randl(1, 255)}; // alpha: 1-255
+            curVec.push_back(bndBox);
+        }
+        bndBoxVec.push_back(curVec);
+    }
+
+    std::shared_ptr<NVCVBndBoxesImpl> bndBoxes = std::make_shared<NVCVBndBoxesImpl>(bndBoxVec);
+
+    nvcv::Tensor imgIn  = nvcv::util::CreateTensor(inN, inW, inH, inFormat);
+    nvcv::Tensor imgOut = nvcv::util::CreateTensor(outN, inW, inH, outFormat);
+
+    cvcuda::BndBox op;
+    EXPECT_EQ(NVCV_ERROR_INVALID_ARGUMENT,
+              nvcv::ProtectCall([&] { op(stream, imgIn, imgOut, (NVCVBndBoxesI)bndBoxes.get()); }));
+
+    EXPECT_EQ(cudaSuccess, cudaStreamSynchronize(stream));
     EXPECT_EQ(cudaSuccess, cudaStreamDestroy(stream));
 }

@@ -56,7 +56,7 @@ which nvcc && nvcc --version
 echo
 
 echo "***Python***"
-which python && python -c "import sys; print('Python {0}.{1}.{2}'.format(sys.version_info[0], sys.version_info[1], sys.version_info[2]))"
+which python3 && python3 --version
 echo
 
 echo "***Environment Variables***"
@@ -81,11 +81,11 @@ if type "conda" &> /dev/null; then
 echo '***conda packages***'
 which conda && conda list
 echo
-# Print pip packages if pip exists
-elif type "pip" &> /dev/null; then
+# Print pip packages using system python
+elif type "python3" &> /dev/null; then
 echo "conda not found"
 echo "***pip packages***"
-which pip && pip list
+which pip && python3 -m pip list
 echo
 else
 echo "conda not found"

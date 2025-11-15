@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2022-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2022-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-if(ENABLE_SANITIZERS)
+if(ENABLE_SANITIZER)
     message(FATAL_ERROR "CV-CUDA python modules don't work on sanitized builds")
 endif()
 
@@ -78,13 +78,22 @@ file(GENERATE OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/cmake/cvcuda_$<LOWER_CASE:$<CON
                                                  IMPORTED_IMPLIB${NVCV_BUILD_SUFFIX} \"$<TARGET_LINKER_FILE:cvcuda>\")
 ")
 
+# Warn if PYTHON_VERSIONS is set but BUILD_PYTHON is disabled
+if(PYTHON_VERSIONS AND NOT BUILD_PYTHON)
+    message(WARNING "PYTHON_VERSIONS is set to '${PYTHON_VERSIONS}' but BUILD_PYTHON is OFF. Python bindings will not be built.")
+endif()
+
 # Python versions to build already set?
 if(PYTHON_VERSIONS)
     set(USE_DEFAULT_PYTHON false)
 
     set(AVAILABLE_PYTHON_VERSIONS "")
     foreach(VER ${PYTHON_VERSIONS})
-        find_program(PYTHON_EXECUTABLE python${VER} PATHS /usr/bin /usr/local/bin NO_DEFAULT_PATH)
+        # If we only search on the /usr/bin and /usr/local/bin, we may not find the correct Python version
+        # if this is called with a virtual environment as opposed to the system Python
+        # removing the NO_DEFAULT_PATH allows finding the Python in a virtual environment
+        # find_program(PYTHON_EXECUTABLE python${VER} PATHS /usr/bin /usr/local/bin NO_DEFAULT_PATH)
+        find_program(PYTHON_EXECUTABLE python${VER} /usr/bin /usr/local/bin)
         if (PYTHON_EXECUTABLE)
             execute_process(
                 COMMAND ${PYTHON_EXECUTABLE} -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')"

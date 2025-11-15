@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2022-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2022-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,7 +23,7 @@ set(CMAKE_FOLDER tests)
 # - ...
 # so that we can quickly check if everything we claim is being tested.
 # In order to achieve this, we created "tests/common/ValueList.hpp" that implements a domain-specific embedded language making it easier to define the above.
-# To make usage easier, we had to use C++20 language features.
+# NOTE: certain tests require C++20 class-instance NTTPs and are excluded for GCC-10 builds.
 set(CMAKE_CXX_STANDARD 20)
 
 enable_testing()
@@ -45,14 +45,17 @@ target_link_libraries(nvcv_test_main
 if(UNIX)
     file(TO_NATIVE_PATH "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/" TESTS_DRIVER_DIR)
     set(TESTS_DRIVER "${TESTS_DRIVER_DIR}/run_tests.sh")
-    set(WHEEL_TESTER "${TESTS_DRIVER_DIR}/test_wheels.sh")
 
     configure_file(${CMAKE_CURRENT_SOURCE_DIR}/run_tests.sh.in ${TESTS_DRIVER}
         @ONLY)
-    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/test_wheels.sh.in ${WHEEL_TESTER}
-        @ONLY)
 
-    macro(nvcv_add_test TESTCMD TESTGROUP)
+    if(BUILD_TESTS_WHEELS)
+        set(WHEEL_TESTER "${TESTS_DRIVER_DIR}/test_wheels.sh")
+        configure_file(${CMAKE_CURRENT_SOURCE_DIR}/test_wheels.sh.in ${WHEEL_TESTER}
+            @ONLY)
+    endif()
+
+    macro(nvcv_add_test TESTCMD)
         get_filename_component(TESTNAME "${TESTCMD}" NAME)
 
         add_test(NAME "${TESTNAME}" COMMAND "${TESTCMD}")
@@ -73,7 +76,14 @@ if(UNIX)
 
         set_tests_properties(${TESTNAME} PROPERTIES TIMEOUT ${TIMEOUT_TERM})
 
-        file(APPEND "${TESTS_DRIVER}" "run ${TESTNAME} ${TESTGROUP}\n")
+        # Join all test groups (ARGN) with spaces
+        string(REPLACE ";" " " TESTGROUPS "${ARGN}")
+
+        if(TESTGROUPS)
+            file(APPEND "${TESTS_DRIVER}" "run ${TESTNAME} ${TESTGROUPS}\n")
+        else()
+            file(APPEND "${TESTS_DRIVER}" "run ${TESTNAME}\n")
+        endif()
 
         if(TARGET ${TESTNAME} AND NOT EXTERNAL_TARGET)
             install(TARGETS ${TESTNAME}
@@ -89,9 +99,11 @@ if(UNIX)
     install(PROGRAMS ${TESTS_DRIVER}
         TYPE BIN
         COMPONENT tests)
-    install(PROGRAMS ${WHEEL_TESTER}
-        TYPE BIN
-        COMPONENT tests)
+    if(BUILD_TESTS_WHEELS)
+        install(PROGRAMS ${WHEEL_TESTER}
+            TYPE BIN
+            COMPONENT tests)
+    endif()
 else()
     macro(nvcv_add_test)
         add_test(${ARGV})
@@ -100,6 +112,8 @@ endif()
 
 # Create build tree
 
-add_subdirectory(common)
-add_subdirectory(nvcv_types)
-add_subdirectory(cvcuda)
+if(BUILD_TESTS_CPP OR BUILD_TESTS_PYTHON)
+    add_subdirectory(common)
+    add_subdirectory(nvcv_types)
+    add_subdirectory(cvcuda)
+endif()

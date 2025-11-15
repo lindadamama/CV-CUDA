@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2022-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2022-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -253,21 +253,18 @@ NVCV_DEFINE_API(0, 2, NVCVStatus, nvcvTensorGetShape, (NVCVTensorHandle handle, 
                 throw priv::Exception(NVCV_ERROR_INVALID_ARGUMENT, "Input pointer to rank cannot be NULL");
             }
 
-            if (shape != nullptr)
+            // Number of shape elements to copy
+            int n = std::min(*rank, tensor.rank());
+            if (n > 0)
             {
-                // Number of shape elements to copy
-                int n = std::min(*rank, tensor.rank());
-                if (n > 0)
+                if (shape == nullptr)
                 {
-                    if (shape == nullptr)
-                    {
-                        throw priv::Exception(NVCV_ERROR_INVALID_ARGUMENT, "Pointer to shape output cannot be NULL");
-                    }
-
-                    NVCV_ASSERT(*rank - n >= 0);
-                    std::fill_n(shape, *rank - n, 1);
-                    std::copy_n(tensor.shape() + tensor.rank() - n, n, shape + *rank - n);
+                    throw priv::Exception(NVCV_ERROR_INVALID_ARGUMENT, "Pointer to shape output cannot be NULL");
                 }
+
+                NVCV_ASSERT(*rank - n >= 0);
+                std::fill_n(shape, *rank - n, 1);
+                std::copy_n(tensor.shape() + tensor.rank() - n, n, shape + *rank - n);
             }
 
             *rank = tensor.rank();

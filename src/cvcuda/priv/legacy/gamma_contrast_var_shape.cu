@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2022-2023 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2022-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -142,6 +142,18 @@ ErrorCode GammaContrastVarShape::infer(const ImageBatchVarShapeDataStridedCuda &
                                        const ImageBatchVarShapeDataStridedCuda &outData,
                                        const TensorDataStridedCuda &gammas, cudaStream_t stream)
 {
+    if (!inData.uniqueFormat())
+    {
+        LOG_ERROR("Images in the input batch must all have the same format");
+        return ErrorCode::INVALID_DATA_FORMAT;
+    }
+
+    if (!outData.uniqueFormat())
+    {
+        LOG_ERROR("Images in the output batch must all have the same format");
+        return ErrorCode::INVALID_DATA_FORMAT;
+    }
+
     if (m_maxBatchSize <= 0 || inData.numImages() > m_maxBatchSize)
     {
         LOG_ERROR("Invalid maximum batch size");
@@ -170,12 +182,6 @@ ErrorCode GammaContrastVarShape::infer(const ImageBatchVarShapeDataStridedCuda &
         return ErrorCode::INVALID_DATA_FORMAT;
     }
 
-    if (!inData.uniqueFormat())
-    {
-        LOG_ERROR("Images in the input batch must all have the same format");
-        return ErrorCode::INVALID_DATA_FORMAT;
-    }
-
     DataType data_type = helpers::GetLegacyDataType(inData.uniqueFormat());
 
     if (!(data_type == kCV_8U || data_type == kCV_8S || data_type == kCV_16U || data_type == kCV_16S
@@ -183,12 +189,6 @@ ErrorCode GammaContrastVarShape::infer(const ImageBatchVarShapeDataStridedCuda &
     {
         LOG_ERROR("Invalid DataType " << data_type);
         return ErrorCode::INVALID_DATA_TYPE;
-    }
-
-    if (!outData.uniqueFormat())
-    {
-        LOG_ERROR("Images in the output batch must all have the same format");
-        return ErrorCode::INVALID_DATA_FORMAT;
     }
 
     DataType out_data_type = helpers::GetLegacyDataType(outData.uniqueFormat());

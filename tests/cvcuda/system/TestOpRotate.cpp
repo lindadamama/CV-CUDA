@@ -613,7 +613,6 @@ TEST(OpRotate_Negative, varshape_hasDifferentFormat)
         nvcv::ImageBatchVarShape batchDst(numberOfImages);
         batchDst.pushBack(imgDst.begin(), imgDst.end());
 
-        // Generate test result
         cvcuda::Rotate rotateOp(numberOfImages);
         EXPECT_EQ(NVCV_ERROR_INVALID_ARGUMENT,
                   nvcv::ProtectCall(

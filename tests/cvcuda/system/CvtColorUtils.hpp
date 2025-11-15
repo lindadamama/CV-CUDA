@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2024-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,6 +20,7 @@
 
 #include <stdint.h>
 
+#include <cstddef>
 #include <vector>
 
 // clang-format off
@@ -50,26 +51,26 @@ template<typename T>
 void convertYUVtoRGB_PAL(std::vector<T> &dst, const std::vector<T> &src, size_t numPixels, bool rgba, bool bgr);
 
 template<typename T>
-void convertRGBtoYUV_420(std::vector<T> &dst, const std::vector<T> &src, uint wdth, uint hght, uint numImgs,
+void convertRGBtoYUV_420(std::vector<T> &dst, const std::vector<T> &src, unsigned int wdth, unsigned int hght, unsigned int numImgs,
                          bool rgba, bool bgr, bool yvu);
 
 template<typename T>
-void convertYUVtoRGB_420(std::vector<T> &dst, const std::vector<T> &src, uint wdth, uint hght, uint numImgs,
+void convertYUVtoRGB_420(std::vector<T> &dst, const std::vector<T> &src, unsigned int wdth, unsigned int hght, unsigned int numImgs,
                          bool rgba, bool bgr, bool yvu);
 
 template<typename T>
-void convertYUVtoGray_420(std::vector<T> &dst, const std::vector<T> &src, uint wdth, uint hght, uint numImgs);
+void convertYUVtoGray_420(std::vector<T> &dst, const std::vector<T> &src, unsigned int wdth, unsigned int hght, unsigned int numImgs);
 
 template<typename T>
-void convertRGBtoNV12(std::vector<T> &dst, const std::vector<T> &src, uint wdth, uint hght, uint num,
+void convertRGBtoNV12(std::vector<T> &dst, const std::vector<T> &src, unsigned int wdth, unsigned int hght, unsigned int num,
                       bool rgba, bool bgr, bool yvu);
 
 template<typename T>
-void convertNV12toRGB(std::vector<T> &dst, const std::vector<T> &src, uint wdth, uint hght, uint num,
+void convertNV12toRGB(std::vector<T> &dst, const std::vector<T> &src, unsigned int wdth, unsigned int hght, unsigned int num,
                       bool rgba, bool bgr, bool yvu);
 
 template<typename T, bool LumaFirst>
-void convertYUVtoRGB_422(std::vector<T> &dst, const std::vector<T> &src, uint wdth, uint hght, uint numImgs,
+void convertYUVtoRGB_422(std::vector<T> &dst, const std::vector<T> &src, unsigned int wdth, unsigned int hght, unsigned int numImgs,
                          bool rgba, bool bgr, bool yvu);
 
 template<typename T, bool LumaFirst>

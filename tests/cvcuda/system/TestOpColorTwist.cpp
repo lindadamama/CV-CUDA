@@ -117,7 +117,7 @@ void CompareTensors(std::vector<uint8_t> &dst, std::vector<uint8_t> &ref, const 
 template<typename TwistValueType>
 inline nvcv::Tensor GetTwistTensor(bool usePerSampleArgs, int numSamples)
 {
-    static_assert(std::is_same_v<float4, TwistValueType> || std::is_same_v<double4, TwistValueType>);
+    static_assert(std::is_same_v<float4, TwistValueType> || std::is_same_v<double4_16a, TwistValueType>);
     auto dType = std::is_same_v<float4, TwistValueType> ? nvcv::TYPE_4F32 : nvcv::TYPE_4F64;
     if (usePerSampleArgs)
     {
@@ -212,9 +212,10 @@ NVCV_TYPED_TEST_SUITE(
         NVCV_TEST_ROW(NVCV_SHAPE(88, 57, 3), ushort4, NVCV_IMAGE_FORMAT_RGBA16U, false, TwistMatrixArgument<float4>),
         NVCV_TEST_ROW(NVCV_SHAPE(101, 32, 5), short3, NVCV_IMAGE_FORMAT_RGB16S, true, TwistMatrixArgument<float4>),
         NVCV_TEST_ROW(NVCV_SHAPE(101, 32, 5), short4, NVCV_IMAGE_FORMAT_RGBA16S, true, TwistMatrixArgument<float4>),
-        NVCV_TEST_ROW(NVCV_SHAPE(79, 50, 3), uint3, NVCV_IMAGE_FORMAT_RGB32U, true, TwistMatrixArgument<double4>),
-        NVCV_TEST_ROW(NVCV_SHAPE(79, 50, 3), uint4, NVCV_IMAGE_FORMAT_RGBA32U, true, TwistMatrixArgument<double4>),
-        NVCV_TEST_ROW(NVCV_SHAPE(101, 32, 5), int3, NVCV_IMAGE_FORMAT_RGB32S, false, TwistMatrixArgument<double4>)>);
+        NVCV_TEST_ROW(NVCV_SHAPE(79, 50, 3), uint3, NVCV_IMAGE_FORMAT_RGB32U, true, TwistMatrixArgument<double4_16a>),
+        NVCV_TEST_ROW(NVCV_SHAPE(79, 50, 3), uint4, NVCV_IMAGE_FORMAT_RGBA32U, true, TwistMatrixArgument<double4_16a>),
+        NVCV_TEST_ROW(NVCV_SHAPE(101, 32, 5), int3, NVCV_IMAGE_FORMAT_RGB32S, false,
+                      TwistMatrixArgument<double4_16a>)>);
 
 TYPED_TEST(OpColorTwist, correct_output)
 {

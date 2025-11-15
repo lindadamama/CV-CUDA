@@ -632,6 +632,7 @@ TEST_F(TensorTests_Negative, invalid_parameter_TensorGetShape)
 
     EXPECT_EQ(NVCV_ERROR_INVALID_ARGUMENT, nvcvTensorGetShape(nullptr, &rank, shape));  // null handle
     EXPECT_EQ(NVCV_ERROR_INVALID_ARGUMENT, nvcvTensorGetShape(handle, nullptr, shape)); // null rank
+    EXPECT_EQ(NVCV_ERROR_INVALID_ARGUMENT, nvcvTensorGetShape(handle, &rank, nullptr)); // null shape
 }
 
 TEST_F(TensorTests_Negative, invalid_parameter_TensorGetUserPointer)

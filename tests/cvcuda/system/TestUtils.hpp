@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2024-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -53,11 +53,13 @@ inline void generateRandTestRGB(std::vector<T> &dst, RandEng &eng, bool rgba = f
 
 //--------------------------------------------------------------------------------------------------------------------//
 template<typename T>
-void generateAllRGB(T *dst, uint wdth, uint hght, uint num, bool rgba = false, bool bga = false);
+void generateAllRGB(T *dst, unsigned int wdth, unsigned int hght, unsigned int num, bool rgba = false,
+                    bool bga = false);
 
 //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - //
 template<typename T>
-inline void generateAllRGB(std::vector<T> &dst, uint wdth, uint hght, uint num, bool rgba = false, bool bga = false)
+inline void generateAllRGB(std::vector<T> &dst, unsigned int wdth, unsigned int hght, unsigned int num,
+                           bool rgba = false, bool bga = false)
 {
     ASSERT_GE(dst.size(), (size_t)num * (size_t)hght * (size_t)wdth * (size_t)(3 + rgba));
     generateAllRGB<T>(dst.data(), wdth, hght, num, rgba, bga);
@@ -76,11 +78,11 @@ inline void generateRandHSV(std::vector<T> &dst, RandEng &eng, double minHueMult
 
 //--------------------------------------------------------------------------------------------------------------------//
 template<typename T, bool FullRange>
-void generateAllHSV(T *dst, uint wdth, uint hght, uint num);
+void generateAllHSV(T *dst, unsigned int wdth, unsigned int hght, unsigned int num);
 
 //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - //
 template<typename T, bool FullRange>
-inline void generateAllHSV(std::vector<T> &dst, uint wdth, uint hght, uint num)
+inline void generateAllHSV(std::vector<T> &dst, unsigned int wdth, unsigned int hght, unsigned int num)
 {
     ASSERT_EQ(dst.size() % 3, 0);
     ASSERT_GE(dst.size(), (size_t)num * (size_t)hght * (size_t)wdth * (size_t)3);
@@ -104,7 +106,7 @@ inline void generateAllHSV(std::vector<T> &dst, uint wdth, uint hght, uint num)
 #define EXPECT_NEAR_ARR_CNT(data1, data2, size, maxDiff, maxCnt, passes)                                        \
     do                                                                                                          \
     {                                                                                                           \
-        uint cnt = 0;                                                                                           \
+        unsigned int cnt = 0;                                                                                   \
         for (size_t i = 0; i < size && cnt < maxCnt; i++)                                                       \
         {                                                                                                       \
             EXPECT_NEAR(data1[i], data2[i], maxDiff) << "At index " << i << " (error count = " << ++cnt << ")"; \
@@ -130,7 +132,7 @@ inline void generateAllHSV(std::vector<T> &dst, uint wdth, uint hght, uint num)
     do                                                                                                                \
     {                                                                                                                 \
         ASSERT_EQ(size % 3, 0);                                                                                       \
-        uint   cnt  = 0;                                                                                              \
+        unsigned int   cnt  = 0;                                                                                              \
         double half = range * 0.5;                                                                                    \
         for (size_t i = 0; i < size && cnt < maxCnt; i += 3)                                                          \
         {                                                                                                             \

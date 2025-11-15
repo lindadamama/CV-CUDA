@@ -53,10 +53,13 @@ NVCV_TEST_SUITE_P(OpResize, test::ValueList<int, int, int, int, NVCVInterpolatio
     {        113,       12,       12,        36, NVCV_INTERP_NEAREST,           1,     nvcv::FMT_RGBA8},
     {        421,      148,      223,       124, NVCV_INTERP_NEAREST,           2,     nvcv::FMT_RGBA8},
     {        313,      212,      412,       336, NVCV_INTERP_NEAREST,           3,     nvcv::FMT_RGBA8},
+    {         20,       20,       23,        23, NVCV_INTERP_NEAREST,           1,     nvcv::FMT_RGBA8},
     {         42,       40,       21,        20,  NVCV_INTERP_LINEAR,           1,     nvcv::FMT_RGBA8},
     {         21,       21,       42,        42,  NVCV_INTERP_LINEAR,           1,     nvcv::FMT_RGBA8},
     {        420,      420,      210,       210,  NVCV_INTERP_LINEAR,           4,     nvcv::FMT_RGBA8},
     {        210,      210,      420,       420,  NVCV_INTERP_LINEAR,           5,     nvcv::FMT_RGBA8},
+    {         37,       40,       19,        20,  NVCV_INTERP_LINEAR,           1,     nvcv::FMT_RGBA8},
+    {         35,       35,       22,        22,  NVCV_INTERP_LINEAR,           1,     nvcv::FMT_RGBA8},
     {         42,       40,       21,        20,   NVCV_INTERP_CUBIC,           1,     nvcv::FMT_RGBA8},
     {         21,       21,       42,        42,   NVCV_INTERP_CUBIC,           6,     nvcv::FMT_RGBA8},
     {        420,      420,      420,       420,   NVCV_INTERP_CUBIC,           2,     nvcv::FMT_RGBA8},
@@ -67,6 +70,7 @@ NVCV_TEST_SUITE_P(OpResize, test::ValueList<int, int, int, int, NVCVInterpolatio
     {         44,       40,       22,        20,    NVCV_INTERP_AREA,           2,     nvcv::FMT_RGBA8},
     {         30,       30,       20,        20,    NVCV_INTERP_AREA,           2,     nvcv::FMT_RGBA8},
     {         30,       30,       60,        60,    NVCV_INTERP_AREA,           4,     nvcv::FMT_RGBA8},
+    {         60,       60,       20,        20,    NVCV_INTERP_AREA,           4,     nvcv::FMT_RGBA8},
     {       1080,     1920,      720,      1280,  NVCV_INTERP_LINEAR,           1,     nvcv::FMT_RGBA8},
     {        720,     1280,      480,       854,  NVCV_INTERP_CUBIC,            1,     nvcv::FMT_RGBA8},
     {       1440,     2560,     1080,      1920,  NVCV_INTERP_AREA,             1,     nvcv::FMT_RGBA8},
@@ -313,15 +317,33 @@ TEST_P(OpResize, varshape_correct_output)
     }
 }
 
+TEST(OpResize_Negative, createWithNullHandle)
+{
+    EXPECT_EQ(NVCV_ERROR_INVALID_ARGUMENT, cvcudaResizeCreate(nullptr));
+}
+
 // clang-format off
 NVCV_TEST_SUITE_P(OpResize_Negative, test::ValueList<nvcv::ImageFormat, nvcv::ImageFormat, int, int, NVCVInterpolationType>{
     {nvcv::FMT_U8, nvcv::FMT_U16, 1, 1, NVCV_INTERP_NEAREST}, // in/out image data type not same
     {nvcv::FMT_U8, nvcv::FMT_RGB8p, 1, 1, NVCV_INTERP_NEAREST}, // in/out image layout not same
     {nvcv::FMT_RGB8p, nvcv::FMT_U8, 1, 1, NVCV_INTERP_NEAREST}, // in/out image layout not NHWC
+    {nvcv::FMT_RGB8p, nvcv::FMT_RGB8p, 1, 1, NVCV_INTERP_NEAREST}, // in/out image layout not NHWC
     {nvcv::FMT_RGB8, nvcv::FMT_RGB8, 1, 2, NVCV_INTERP_NEAREST}, // in/out image num are different
     {nvcv::FMT_U8, nvcv::FMT_RGB8, 1, 1, NVCV_INTERP_NEAREST}, // in/out image channels are different
     {nvcv::FMT_F16, nvcv::FMT_F16, 1, 1, NVCV_INTERP_NEAREST}, // invalid datatype
     {nvcv::FMT_F16, nvcv::FMT_F16, 1, 1, NVCV_INTERP_HAMMING}, // invalid interpolation
+});
+
+NVCV_TEST_SUITE_P(OpResizeVarshape_Negative, test::ValueList<nvcv::ImageFormat, nvcv::ImageFormat, nvcv::ImageFormat, nvcv::ImageFormat, NVCVInterpolationType>
+{
+    // invalid data format
+    {nvcv::FMT_RGB8p, nvcv::FMT_RGB8, nvcv::FMT_RGB8p, nvcv::FMT_RGB8, NVCV_INTERP_NEAREST},
+    {nvcv::FMT_RGB8, nvcv::FMT_RGB8p, nvcv::FMT_RGB8, nvcv::FMT_RGB8p, NVCV_INTERP_NEAREST},
+    {nvcv::FMT_RGB8, nvcv::FMT_RGB8, nvcv::FMT_U8, nvcv::FMT_RGB8, NVCV_INTERP_NEAREST},
+    {nvcv::FMT_RGB8, nvcv::FMT_RGB8, nvcv::FMT_RGB8, nvcv::FMT_U8, NVCV_INTERP_NEAREST},
+    {nvcv::FMT_RGB8p, nvcv::FMT_RGB8p, nvcv::FMT_RGB8p, nvcv::FMT_RGB8p, NVCV_INTERP_NEAREST},
+    {nvcv::FMT_RGBf16, nvcv::FMT_RGB8, nvcv::FMT_RGBf16, nvcv::FMT_RGB8, NVCV_INTERP_NEAREST},
+    {nvcv::FMT_RGB8, nvcv::FMT_RGB8, nvcv::FMT_RGB8, nvcv::FMT_RGB8, NVCV_INTERP_HAMMING},
 });
 
 // clang-format on
@@ -351,6 +373,55 @@ TEST_P(OpResize_Negative, op)
 
     cvcuda::Resize resizeOp;
     EXPECT_EQ(NVCV_ERROR_INVALID_ARGUMENT, nvcv::ProtectCall([&] { resizeOp(stream, imgSrc, imgDst, interpolation); }));
+
+    EXPECT_EQ(cudaSuccess, cudaStreamSynchronize(stream));
+    EXPECT_EQ(cudaSuccess, cudaStreamDestroy(stream));
+}
+
+TEST_P(OpResizeVarshape_Negative, op)
+{
+    cudaStream_t stream;
+    EXPECT_EQ(cudaSuccess, cudaStreamCreate(&stream));
+
+    int srcWidthBase   = 42;
+    int srcHeightBase  = 48;
+    int dstWidthBase   = 23;
+    int dstHeightBase  = 24;
+    int numberOfImages = 5;
+
+    nvcv::ImageFormat     inFmt         = GetParamValue<0>();
+    nvcv::ImageFormat     outFmt        = GetParamValue<1>();
+    nvcv::ImageFormat     inFmtExtra    = GetParamValue<2>();
+    nvcv::ImageFormat     outFmtExtra   = GetParamValue<3>();
+    NVCVInterpolationType interpolation = GetParamValue<4>();
+
+    // Create input and output
+    std::default_random_engine         randEng;
+    std::uniform_int_distribution<int> rndSrcWidth(srcWidthBase * 0.8, srcWidthBase * 1.1);
+    std::uniform_int_distribution<int> rndSrcHeight(srcHeightBase * 0.8, srcHeightBase * 1.1);
+
+    std::uniform_int_distribution<int> rndDstWidth(dstWidthBase * 0.8, dstWidthBase * 1.1);
+    std::uniform_int_distribution<int> rndDstHeight(dstHeightBase * 0.8, dstHeightBase * 1.1);
+
+    std::vector<nvcv::Image> imgSrc, imgDst;
+    for (int i = 0; i < numberOfImages - 1; ++i)
+    {
+        imgSrc.emplace_back(nvcv::Size2D{rndSrcWidth(randEng), rndSrcHeight(randEng)}, inFmt);
+        imgDst.emplace_back(nvcv::Size2D{rndDstWidth(randEng), rndDstHeight(randEng)}, outFmt);
+    }
+    imgSrc.emplace_back(nvcv::Size2D{srcWidthBase, srcHeightBase}, inFmtExtra);
+    imgDst.emplace_back(nvcv::Size2D{dstHeightBase, dstHeightBase}, outFmtExtra);
+
+    nvcv::ImageBatchVarShape batchSrc(numberOfImages);
+    batchSrc.pushBack(imgSrc.begin(), imgSrc.end());
+
+    nvcv::ImageBatchVarShape batchDst(numberOfImages);
+    batchDst.pushBack(imgDst.begin(), imgDst.end());
+
+    // run operator
+    cvcuda::Resize resizeOp;
+    EXPECT_EQ(NVCV_ERROR_INVALID_ARGUMENT,
+              nvcv::ProtectCall([&] { resizeOp(stream, batchSrc, batchDst, interpolation); }));
 
     EXPECT_EQ(cudaSuccess, cudaStreamSynchronize(stream));
     EXPECT_EQ(cudaSuccess, cudaStreamDestroy(stream));

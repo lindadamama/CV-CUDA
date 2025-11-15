@@ -407,6 +407,8 @@ NVCV_TEST_SUITE_P(OpNormalize_Negative, test::ValueList<nvcv::ImageFormat, nvcv:
     {nvcv::FMT_RGB8, nvcv::FMT_RGB8p, false},
     {nvcv::FMT_RGB8p, nvcv::FMT_RGB8p, false},
     {nvcv::FMT_RGB8, nvcv::FMT_RGB8, true},
+    {nvcv::FMT_RGBf16, nvcv::FMT_RGBf16, false},
+    {nvcv::FMT_U16, nvcv::FMT_U16, false},
 });
 
 // clang-format on
@@ -423,6 +425,10 @@ TEST_P(OpNormalize_Negative, op)
     if (isVarShapeDifferentFormatTest)
     {
         GTEST_SKIP() << "Skip varshape different format test for tensor test";
+    }
+    if (inFmt == nvcv::FMT_U16 && outFmt == nvcv::FMT_U16)
+    {
+        GTEST_SKIP() << "Skip U16 test for tensor test";
     }
 
     int width     = 24;

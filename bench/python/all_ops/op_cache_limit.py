@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2024-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import nvcv
+import cvcuda
 import torch
 
 # NOTE: One must import PyCuda driver first, before CVCUDA or VPF otherwise
@@ -41,9 +41,9 @@ class BaseOpCacheLimit(AbstractOpBase):
     def setup(self, input, new_cache_limit, low, high):
         super().setup(input)
 
-        # make this benchmark compatible with older cvcuda/nvncv versions
-        if hasattr(nvcv, "set_cache_limit_inbytes"):
-            nvcv.set_cache_limit_inbytes(new_cache_limit)
+        # make this benchmark compatible with older cvcuda versions
+        if hasattr(cvcuda, "set_cache_limit_inbytes"):
+            cvcuda.set_cache_limit_inbytes(new_cache_limit)
 
         # We don't have access to the outer benchmark iterations (default=10), so we have to create our own
         # counter.
@@ -71,7 +71,7 @@ class BaseOpCacheLimit(AbstractOpBase):
                 self.hw[self.iter_outer, 1, ii].item(),
                 3,
             )
-            _ = nvcv.Tensor(shape, nvcv.Type.F32, nvcv.TensorLayout.HWC)
+            _ = cvcuda.Tensor(shape, cvcuda.Type.F32, cvcuda.TensorLayout.HWC)
 
         self.iter_outer += 1
         return

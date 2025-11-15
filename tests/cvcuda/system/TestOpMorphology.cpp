@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2022-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2022-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -921,7 +921,7 @@ TEST(OpMorphology_Negative, createNull)
     EXPECT_EQ(NVCV_ERROR_INVALID_ARGUMENT, cvcudaMorphologyCreate(nullptr));
 }
 
-TEST(OpMorphology_Negative, operator)
+TEST(OpMorphology_Negative, operator_negative)
 {
     NVCVBorderType    borderMode = NVCV_BORDER_CONSTANT;
     nvcv::ImageFormat format{NVCV_IMAGE_FORMAT_U8};
@@ -971,9 +971,38 @@ TEST(OpMorphology_Negative, operator)
             morphOp(nullptr, inTensor, outTensorInvalid, nvcv::NullOpt, NVCV_ERODE, maskSize, anchor, 0, borderMode),
             nvcv::Exception);
     }
+#ifndef ENABLE_SANITIZER
+    // testSet: invalid morph type
+    EXPECT_THROW(morphOp(nullptr, inTensor, outTensor, nvcv::NullOpt, static_cast<NVCVMorphologyType>(255), maskSize,
+                         anchor, 0, borderMode),
+                 nvcv::Exception);
+    // testSet: invalid border mode
+    EXPECT_THROW(morphOp(nullptr, inTensor, outTensor, nvcv::NullOpt, NVCV_ERODE, maskSize, anchor, 0,
+                         static_cast<NVCVBorderType>(255)),
+                 nvcv::Exception);
+#endif
+
+    // testSet: invalid format
+    {
+        nvcv::Tensor inTensorInvalid  = nvcv::util::CreateTensor(1, 24, 24, nvcv::FMT_RGB8p);
+        nvcv::Tensor outTensorInvalid = nvcv::util::CreateTensor(1, 24, 24, nvcv::FMT_RGB8p);
+        EXPECT_THROW(morphOp(nullptr, inTensorInvalid, outTensorInvalid, nvcv::NullOpt, NVCV_ERODE, maskSize, anchor, 0,
+                             borderMode),
+                     nvcv::Exception);
+    }
+    {
+#define NVCV_IMAGE_FORMAT_2U8 NVCV_DETAIL_MAKE_NONCOLOR_FMT1(PL, UNSIGNED, XY00, ASSOCIATED, X8_Y8)
+        nvcv::ImageFormat formatInvalid{NVCV_IMAGE_FORMAT_2U8};
+        nvcv::Tensor      inTensorInvalid  = nvcv::util::CreateTensor(1, 24, 24, formatInvalid);
+        nvcv::Tensor      outTensorInvalid = nvcv::util::CreateTensor(1, 24, 24, formatInvalid);
+        EXPECT_THROW(morphOp(nullptr, inTensorInvalid, outTensorInvalid, nvcv::NullOpt, NVCV_ERODE, maskSize, anchor, 0,
+                             borderMode),
+                     nvcv::Exception);
+#undef NVCV_IMAGE_FORMAT_2U8
+    }
 }
 
-TEST(OpMorphology_Negative, operator_varshape)
+TEST(OpMorphology_Negative, operator_varshape_negative)
 {
     NVCVBorderType    borderMode = NVCV_BORDER_CONSTANT;
     nvcv::ImageFormat format{NVCV_IMAGE_FORMAT_U8};
@@ -1091,4 +1120,71 @@ TEST(OpMorphology_Negative, operator_varshape)
                              anchorTensor, 1, borderMode),
                      nvcv::Exception);
     }
+
+#ifndef ENABLE_SANITIZER
+    // testSet5 : invalid morph type
+    EXPECT_THROW(morphOp(nullptr, batchSrc, batchDst, batchWorkspace, static_cast<NVCVMorphologyType>(255), maskTensor,
+                         anchorTensor, 0, borderMode),
+                 nvcv::Exception);
+    // invalid border mode
+    EXPECT_THROW(morphOp(nullptr, batchSrc, batchDst, batchWorkspace, NVCV_ERODE, maskTensor, anchorTensor, 0,
+                         static_cast<NVCVBorderType>(255)),
+                 nvcv::Exception);
+#endif
+
+    // testSet6: invalid format
+    {
+        nvcv::ImageFormat        formatInvalid = nvcv::FMT_RGB8p;
+        std::vector<nvcv::Image> imgSrcInvalid;
+        nvcv::ImageBatchVarShape batchSrcInvalid(batches);
+        for (int i = 0; i < batches; ++i)
+        {
+            imgSrcInvalid.emplace_back(nvcv::Size2D{24, 24}, formatInvalid);
+        }
+        batchSrcInvalid.pushBack(imgSrcInvalid.begin(), imgSrcInvalid.end());
+
+        std::vector<nvcv::Image> imgDstInvalid;
+        std::vector<nvcv::Image> imgWorkspaceInvalid;
+        nvcv::ImageBatchVarShape batchDstInvalid(batches);
+        nvcv::ImageBatchVarShape batchWorkspaceInvalid(batches);
+        for (int i = 0; i < batches; ++i)
+        {
+            imgDstInvalid.emplace_back(imgSrcInvalid[i].size(), imgSrcInvalid[i].format());
+            imgWorkspaceInvalid.emplace_back(imgSrcInvalid[i].size(), imgSrcInvalid[i].format());
+        }
+        batchDstInvalid.pushBack(imgDstInvalid.begin(), imgDstInvalid.end());
+        batchWorkspaceInvalid.pushBack(imgWorkspaceInvalid.begin(), imgWorkspaceInvalid.end());
+
+        EXPECT_THROW(morphOp(nullptr, batchSrcInvalid, batchDstInvalid, batchWorkspaceInvalid, NVCV_ERODE, maskTensor,
+                             anchorTensor, 1, borderMode),
+                     nvcv::Exception);
+    }
+    {
+#define NVCV_IMAGE_FORMAT_2U8 NVCV_DETAIL_MAKE_NONCOLOR_FMT1(PL, UNSIGNED, XY00, ASSOCIATED, X8_Y8)
+        nvcv::ImageFormat        formatInvalid{NVCV_IMAGE_FORMAT_2U8};
+        std::vector<nvcv::Image> imgSrcInvalid;
+        nvcv::ImageBatchVarShape batchSrcInvalid(batches);
+        for (int i = 0; i < batches; ++i)
+        {
+            imgSrcInvalid.emplace_back(nvcv::Size2D{24, 24}, formatInvalid);
+        }
+        batchSrcInvalid.pushBack(imgSrcInvalid.begin(), imgSrcInvalid.end());
+
+        std::vector<nvcv::Image> imgDstInvalid;
+        std::vector<nvcv::Image> imgWorkspaceInvalid;
+        nvcv::ImageBatchVarShape batchDstInvalid(batches);
+        nvcv::ImageBatchVarShape batchWorkspaceInvalid(batches);
+        for (int i = 0; i < batches; ++i)
+        {
+            imgDstInvalid.emplace_back(imgSrcInvalid[i].size(), imgSrcInvalid[i].format());
+            imgWorkspaceInvalid.emplace_back(imgSrcInvalid[i].size(), imgSrcInvalid[i].format());
+        }
+        batchDstInvalid.pushBack(imgDstInvalid.begin(), imgDstInvalid.end());
+        batchWorkspaceInvalid.pushBack(imgWorkspaceInvalid.begin(), imgWorkspaceInvalid.end());
+
+        EXPECT_THROW(morphOp(nullptr, batchSrcInvalid, batchDstInvalid, batchWorkspaceInvalid, NVCV_ERODE, maskTensor,
+                             anchorTensor, 1, borderMode),
+                     nvcv::Exception);
+    }
+#undef NVCV_IMAGE_FORMAT_2U8
 }

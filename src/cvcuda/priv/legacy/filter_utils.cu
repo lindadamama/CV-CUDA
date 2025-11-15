@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2022-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2022-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -116,11 +116,6 @@ __global__ void computeGaussianKernelVarShape(cuda::Tensor3DWrap<float, int32_t>
 
     int2 kernelSize = kernelSizeArr[coord.z];
 
-    if (coord.x >= kernelSize.x || coord.y >= kernelSize.y)
-    {
-        return;
-    }
-
     double2 sigma = sigmaArr[coord.z];
 
     if (sigma.y <= 0)
@@ -136,6 +131,11 @@ __global__ void computeGaussianKernelVarShape(cuda::Tensor3DWrap<float, int32_t>
                      "E Wrong kernelSize.x = %d, expected > 0, odd and <= %d\n", kernelSize.x, maxKernelSize.w);
     NVCV_CUDA_ASSERT(kernelSize.y > 0 && (kernelSize.y % 2 == 1) && kernelSize.y <= maxKernelSize.h,
                      "E Wrong kernelSize.y = %d, expected > 0, odd and <= %d\n", kernelSize.y, maxKernelSize.h);
+
+    if (coord.x >= kernelSize.x || coord.y >= kernelSize.y)
+    {
+        return;
+    }
 
     int2 half{kernelSize.x / 2, kernelSize.y / 2};
 

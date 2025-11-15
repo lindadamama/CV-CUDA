@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2023-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2023-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -33,7 +33,7 @@ target_link_libraries(cvcuda_test_unit
         nvcv_test_common
         cvcuda_priv
         cvcuda_util
-        cuda
+        CUDA::cuda_driver
 )
 
-nvcv_add_test(cvcuda_test_unit cvcuda)
+nvcv_add_test(cvcuda_test_unit cvcuda cpp)

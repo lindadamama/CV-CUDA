@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2022-2023 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2022-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,6 +14,7 @@
 # limitations under the License.
 
 import cvcuda
+
 import pytest as t
 from random import randint
 
@@ -23,7 +24,7 @@ from random import randint
     [
         (
             4,
-            cvcuda.RGBf32,
+            cvcuda.Format.RGBf32,
             (1, 1),
             (128, 128),
             cvcuda.Border.CONSTANT,
@@ -31,7 +32,7 @@ from random import randint
         ),
         (
             5,
-            cvcuda.RGB8,
+            cvcuda.Format.RGB8,
             (1, 1),
             (128, 128),
             cvcuda.Border.CONSTANT,
@@ -39,7 +40,7 @@ from random import randint
         ),
         (
             9,
-            cvcuda.RGBA8,
+            cvcuda.Format.RGBA8,
             (1, 1),
             (128, 128),
             cvcuda.Border.WRAP,
@@ -47,7 +48,7 @@ from random import randint
         ),
         (
             12,
-            cvcuda.RGBAf32,
+            cvcuda.Format.RGBAf32,
             (1, 1),
             (128, 128),
             cvcuda.Border.REPLICATE,
@@ -55,7 +56,7 @@ from random import randint
         ),
         (
             8,
-            cvcuda.RGB8,
+            cvcuda.Format.RGB8,
             (1, 1),
             (128, 128),
             cvcuda.Border.REFLECT,
@@ -63,7 +64,7 @@ from random import randint
         ),
         (
             10,
-            cvcuda.RGBA8,
+            cvcuda.Format.RGBA8,
             (1, 1),
             (128, 128),
             cvcuda.Border.REFLECT101,

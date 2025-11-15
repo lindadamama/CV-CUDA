@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2022-2023 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2022-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,13 +14,13 @@
 # limitations under the License.
 
 import cvcuda
+
 import torch
 import pytest as t
 import numpy as np
 import cvcuda_util as util
 import threading
 import queue
-
 
 RNG = np.random.default_rng(0)
 
@@ -38,8 +38,8 @@ RNG = np.random.default_rng(0)
             (132, 15, 4),
             cvcuda.Interp.CUBIC,
         ),
-        (((37, 19, 1), np.uint8 , "HWC"), (113, 47, 1), None),
-        (((37, 19, 3), np.uint8 , "HWC"), (113, 47, 3), cvcuda.Interp.NEAREST),
+        (((37, 19, 1), np.uint8, "HWC"), (113, 47, 1), None),
+        (((37, 19, 3), np.uint8, "HWC"), (113, 47, 3), cvcuda.Interp.NEAREST),
         (((37, 19, 1), np.single, "HWC"), (113, 47, 1), None),
         (((37, 19, 3), np.single, "HWC"), (113, 47, 3), None),
     ],
@@ -85,37 +85,42 @@ def test_op_resize(input_args, out_shape, interp):
     assert out.dtype == input.dtype
 
 
- 
 @t.mark.parametrize(
     "in_shape,out_shape,data_type,interp",
     [
-        ((5, 720, 406, 3), (5, 360, 203, 3), torch.uint8, cvcuda.Interp.NEAREST),  # noqa
-        ((5, 720, 406, 3), (5, 360, 203, 3), torch.uint8, cvcuda.Interp.LINEAR),   # noqa
-        ((5, 720, 406, 3), (5, 360, 203, 3), torch.uint8, cvcuda.Interp.CUBIC),    # noqa
-        ((3,  23,  23, 4), (3,  42,  42, 4), torch.uint8, cvcuda.Interp.LINEAR),   # noqa
-        ((3,  23,  53, 1), (3, 132,  23, 1), torch.uint8, cvcuda.Interp.LINEAR),   # noqa
-        ((3,  23,  53, 1), (3, 132,  23, 1), torch.float, cvcuda.Interp.LINEAR),   # noqa
-        ((1,  37,  19, 1), (1, 113,  47, 1), torch.uint8, cvcuda.Interp.LINEAR),   # noqa
-        ((1,  37,  19, 3), (1, 113,  47, 3), torch.uint8, cvcuda.Interp.NEAREST),  # noqa
-        ((1,  37,  19, 1), (1, 113,  47, 1), torch.float, cvcuda.Interp.LINEAR),   # noqa
-        ((1,  37,  19, 3), (1, 113,  47, 3), torch.float, cvcuda.Interp.LINEAR),   # noqa
+        (
+            (5, 720, 406, 3),
+            (5, 360, 203, 3),
+            torch.uint8,
+            cvcuda.Interp.NEAREST,
+        ),  # noqa
+        ((5, 720, 406, 3), (5, 360, 203, 3), torch.uint8, cvcuda.Interp.LINEAR),  # noqa
+        ((5, 720, 406, 3), (5, 360, 203, 3), torch.uint8, cvcuda.Interp.CUBIC),  # noqa
+        ((3, 23, 23, 4), (3, 42, 42, 4), torch.uint8, cvcuda.Interp.LINEAR),  # noqa
+        ((3, 23, 53, 1), (3, 132, 23, 1), torch.uint8, cvcuda.Interp.LINEAR),  # noqa
+        ((3, 23, 53, 1), (3, 132, 23, 1), torch.float, cvcuda.Interp.LINEAR),  # noqa
+        ((1, 37, 19, 1), (1, 113, 47, 1), torch.uint8, cvcuda.Interp.LINEAR),  # noqa
+        ((1, 37, 19, 3), (1, 113, 47, 3), torch.uint8, cvcuda.Interp.NEAREST),  # noqa
+        ((1, 37, 19, 1), (1, 113, 47, 1), torch.float, cvcuda.Interp.LINEAR),  # noqa
+        ((1, 37, 19, 3), (1, 113, 47, 3), torch.float, cvcuda.Interp.LINEAR),  # noqa
     ],
 )
 def test_op_resize_packed_torch_tensor(in_shape, out_shape, data_type, interp):
     stream = cvcuda.Stream()
 
-    input  = torch.empty( in_shape, dtype=data_type, device=f"cuda:0")
-    output = torch.empty(out_shape, dtype=data_type, device=f"cuda:0")
+    input = torch.empty(in_shape, dtype=data_type, device="cuda:0")
+    output = torch.empty(out_shape, dtype=data_type, device="cuda:0")
 
-    src = cvcuda.as_tensor( input.cuda(0), "NHWC")
+    src = cvcuda.as_tensor(input.cuda(0), "NHWC")
     dst = cvcuda.as_tensor(output.cuda(0), "NHWC")
     tmp = cvcuda.resize_into(dst, src, interp, stream=stream)
     stream.sync()
 
     assert tmp is dst
     assert dst.layout == src.layout
-    assert dst.shape  == out_shape
-    assert dst.dtype  == src.dtype
+    assert dst.shape == out_shape
+    assert dst.dtype == src.dtype
+
 
 @t.mark.parametrize(
     "inSize, outSize, interp",
@@ -147,7 +152,7 @@ def test_op_resizevarshape(inSize, outSize, interp):
     assert out.uniqueformat == input.uniqueformat
     assert out.maxsize == outSize
 
-    stream = cvcuda.cuda.Stream()
+    stream = cvcuda.Stream()
     if interp is None:
         tmp = cvcuda.resize_into(src=input, dst=base_output, stream=stream)
     else:

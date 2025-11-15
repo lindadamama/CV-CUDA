@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2023 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2023-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -69,8 +69,8 @@ try
         numSet1 = nvcv::Tensor({{shape.x}, "N"}, nvcv::TYPE_S32);
         numSet2 = nvcv::Tensor({{shape.x}, "N"}, nvcv::TYPE_S32);
 
-        benchutils::FillTensor<int>(numSet1, [&shape](const long4 &){ return shape.y; });
-        benchutils::FillTensor<int>(numSet2, [&shape](const long4 &){ return shape.y; });
+        benchutils::FillTensor<int>(numSet1, [&shape](auto &){ return shape.y; });
+        benchutils::FillTensor<int>(numSet2, [&shape](auto &){ return shape.y; });
     }
     if (writeDistances)
     {

@@ -55,6 +55,9 @@ TEST(DataLayoutTest, FlipByteOrder)
                       NVCV_CHANNEL_Y, NVCV_CHANNEL_X, NVCV_CHANNEL_W);
     testFlipByteOrder(NVCV_CHANNEL_X, NVCV_CHANNEL_Y, NVCV_CHANNEL_Z, NVCV_CHANNEL_W, 0, 4, NVCV_CHANNEL_W,
                       NVCV_CHANNEL_Z, NVCV_CHANNEL_Y, NVCV_CHANNEL_X);
+
+    // return original swizzle for 0 length
+    EXPECT_EQ(NVCV_SWIZZLE_X000, nvcv::priv::FlipByteOrder(NVCV_SWIZZLE_X000, 0, 0));
 }
 
 TEST(DataLayoutTest, MakeNVCVPacking)
@@ -133,4 +136,22 @@ TEST(ExtraChannelTests, get_name_operator)
     testOperatorInsertion("D", NVCV_EXTRA_CHANNEL_D);
     testOperatorInsertion("POS3D", NVCV_EXTRA_CHANNEL_POS3D);
     testOperatorInsertion("NVCVExtraChannel(-1)", static_cast<NVCVExtraChannel>(-1));
+}
+
+TEST(DataLayoutTest, GetBitsPerPixel_Corner)
+{
+#ifndef ENABLE_SANITIZER
+    EXPECT_EQ(0, nvcv::priv::GetBitsPerPixel(static_cast<NVCVPacking>(63)));
+#endif
+    EXPECT_EQ(0, nvcv::priv::GetBitsPerPixel(NVCV_PACKING_LIMIT32));
+}
+
+TEST(DataLayoutTest, MergePlaneSwizzles_Corner)
+{
+    EXPECT_THROW(
+        nvcv::priv::MergePlaneSwizzles(NVCV_SWIZZLE_0000, NVCV_SWIZZLE_0000, NVCV_SWIZZLE_X000, NVCV_SWIZZLE_X000),
+        nvcv::priv::Exception);
+    EXPECT_THROW(
+        nvcv::priv::MergePlaneSwizzles(NVCV_SWIZZLE_WZY1, NVCV_SWIZZLE_WZY1, NVCV_SWIZZLE_WZY1, NVCV_SWIZZLE_WZY1),
+        nvcv::priv::Exception);
 }

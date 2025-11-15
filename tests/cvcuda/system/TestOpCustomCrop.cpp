@@ -48,7 +48,7 @@ static void dbgImage(std::vector<uint8_t> &in, int rowStride)
 // Width is in bytes or pixels..
 static void WriteData(const nvcv::TensorDataAccessStridedImagePlanar &data, uint8_t val, NVCVRectI region)
 {
-    EXPECT_TRUE(NVCV_TENSOR_NHWC == data.layout() || NVCV_TENSOR_HWC == data.layout());
+    EXPECT_TRUE(data.layout() == NVCV_TENSOR_NHWC || data.layout() == NVCV_TENSOR_HWC);
     EXPECT_LE(region.x + region.width, data.numCols());
     EXPECT_LE(region.y + region.height, data.numRows());
 

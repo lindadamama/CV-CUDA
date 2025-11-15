@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2023-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2023-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,10 +14,10 @@
 # limitations under the License.
 
 import cvcuda
+
 import pytest as t
 import numpy as np
 import cvcuda_util as util
-
 
 RNG = np.random.default_rng(0)
 
@@ -197,8 +197,8 @@ def test_op_match_content(set_shape, set_dtype, cross_check, norm_type):
     h_set1 = util.generate_data(set_shape, set_dtype, max_random=255, rng=RNG)
     h_set2 = util.generate_data(set_shape, set_dtype, max_random=255, rng=RNG)
 
-    set1 = util.to_nvcv_tensor(h_set1, "NMD")
-    set2 = util.to_nvcv_tensor(h_set2, "NMD")
+    set1 = util.to_cvcuda_tensor(h_set1, "NMD")
+    set2 = util.to_cvcuda_tensor(h_set2, "NMD")
 
     matches, num_matches, distances = cvcuda.match(
         set1,

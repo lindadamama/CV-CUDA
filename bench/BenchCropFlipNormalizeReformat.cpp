@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2023 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2023-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -61,13 +61,13 @@ try
 
     nvcv::Tensor crop({{cropShape.x, cropShape.y, cropShape.z, 4}, "NHWC"}, nvcv::TYPE_S32);
 
-    benchutils::FillTensor<int>(flipCode, [](const long4 &){ return -1; });
+    benchutils::FillTensor<int>(flipCode, [](auto &){ return -1; });
 
     benchutils::FillTensor<float>(base, benchutils::RandomValues<T>());
     benchutils::FillTensor<float>(scale, benchutils::RandomValues<float>(0.f, 1.f));
 
     // Always crop entire source image for easy bandwidth calculations
-    benchutils::FillTensor<int>(crop, [&srcShape](const long4 &c)
+    benchutils::FillTensor<int>(crop, [&srcShape](const long4_16a &c)
     {
         if (c.w == 2)
         {

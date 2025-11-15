@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2022-2023 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2022-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,6 +14,7 @@
 # limitations under the License.
 
 import cvcuda
+
 import pytest as t
 import numpy as np
 import cvcuda_util as util
@@ -138,7 +139,7 @@ def test_op_random_resized_crop_varshape(max_input_size, max_output_size, interp
     assert out.uniqueformat == input.uniqueformat
     assert out.maxsize <= max_output_size
 
-    stream = cvcuda.cuda.Stream()
+    stream = cvcuda.Stream()
     if interp is None:
         tmp = cvcuda.random_resized_crop_into(src=input, dst=base_output, stream=stream)
     else:

@@ -250,6 +250,11 @@ bool HandleManager<Interface>::isManagedResource(ResourceBase *r) const
 template<typename Interface>
 Interface *HandleManager<Interface>::validate(HandleType handle) const
 {
+    // Suppress false positive array bounds warning from g++-12-14
+#if defined(__GNUC__) && __GNUC__ >= 12
+#    pragma GCC diagnostic push
+#    pragma GCC diagnostic ignored "-Warray-bounds"
+#endif
     if (auto *res = getValidResource(handle))
     {
         return res->obj();
@@ -258,6 +263,9 @@ Interface *HandleManager<Interface>::validate(HandleType handle) const
     {
         return nullptr;
     }
+#if defined(__GNUC__) && __GNUC__ >= 12
+#    pragma GCC diagnostic pop
+#endif
 }
 
 template<typename Interface>
@@ -270,7 +278,13 @@ auto HandleManager<Interface>::getValidResource(HandleType handle) const -> Reso
 
     ResourceBase *res = doGetResourceFromHandle(handle);
 
-    if (this->isManagedResource(res) && res->live() && res->generation == doGetHandleGeneration(handle))
+    // Suppress false positive array bounds warning from g++-12-14
+#if defined(__GNUC__) && __GNUC__ >= 12
+#    pragma GCC diagnostic push
+#    pragma GCC diagnostic ignored "-Warray-bounds"
+#endif
+    // Add explicit null check before accessing res members to avoid false positive warning in g++-12-14
+    if (res && this->isManagedResource(res) && res->live() && res->generation == doGetHandleGeneration(handle))
     {
         return res;
     }
@@ -278,6 +292,9 @@ auto HandleManager<Interface>::getValidResource(HandleType handle) const -> Reso
     {
         return nullptr;
     }
+#if defined(__GNUC__) && __GNUC__ >= 12
+#    pragma GCC diagnostic pop
+#endif
 }
 
 template<typename Interface>

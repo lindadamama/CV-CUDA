@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2022-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2022-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -70,6 +70,17 @@ struct Size2D : NVCVSize2D
     }
 
     /**
+     * @brief Compares a Size2D with NVCVSize2D for equality.
+     *
+     * @param rhs NVCVSize2D to compare against.
+     * @return true if both width and height are equal, otherwise false.
+     */
+    constexpr bool operator==(const NVCVSize2D &rhs) const
+    {
+        return w == rhs.w && h == rhs.h;
+    }
+
+    /**
      * @brief Compares two Size2D structures for inequality.
      *
      * @param a First size to compare.
@@ -77,6 +88,17 @@ struct Size2D : NVCVSize2D
      * @return true if width or height of `a` and `b` are not equal, otherwise false.
      */
     constexpr bool operator!=(const Size2D &rhs) const
+    {
+        return !(*this == rhs);
+    }
+
+    /**
+     * @brief Compares a Size2D with NVCVSize2D for inequality.
+     *
+     * @param rhs NVCVSize2D to compare against.
+     * @return true if width or height are not equal, otherwise false.
+     */
+    constexpr bool operator!=(const NVCVSize2D &rhs) const
     {
         return !(*this == rhs);
     }
@@ -95,6 +117,30 @@ struct Size2D : NVCVSize2D
         return std::tie(w, h) < std::tie(rhs.w, rhs.h);
     }
 };
+
+/**
+ * @brief Compares NVCVSize2D with Size2D for equality.
+ *
+ * @param lhs NVCVSize2D on the left side of comparison.
+ * @param rhs Size2D on the right side of comparison.
+ * @return true if both width and height are equal, otherwise false.
+ */
+constexpr bool operator==(const NVCVSize2D &lhs, const Size2D &rhs)
+{
+    return lhs.w == rhs.w && lhs.h == rhs.h;
+}
+
+/**
+ * @brief Compares NVCVSize2D with Size2D for inequality.
+ *
+ * @param lhs NVCVSize2D on the left side of comparison.
+ * @param rhs Size2D on the right side of comparison.
+ * @return true if width or height are not equal, otherwise false.
+ */
+constexpr bool operator!=(const NVCVSize2D &lhs, const Size2D &rhs)
+{
+    return !(lhs == rhs);
+}
 
 /**
  * @brief Computes the maximum size in each dimension

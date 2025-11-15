@@ -363,6 +363,7 @@ TEST(ImageFormatTests, operator_insertion)
     testOperatorInsertion("NVCV_IMAGE_FORMAT_UYVY_ER", NVCV_IMAGE_FORMAT_UYVY_ER);
     testOperatorInsertion("NVCV_IMAGE_FORMAT_UYVY_ER_BL", NVCV_IMAGE_FORMAT_UYVY_ER_BL);
     testOperatorInsertion("NVCV_IMAGE_FORMAT_VYUY", NVCV_IMAGE_FORMAT_VYUY);
+    testOperatorInsertion("NVCV_IMAGE_FORMAT_VYUY_BL", NVCV_IMAGE_FORMAT_VYUY_BL);
     testOperatorInsertion("NVCV_IMAGE_FORMAT_YUYV_BL", NVCV_IMAGE_FORMAT_YUYV_BL);
     testOperatorInsertion("NVCV_IMAGE_FORMAT_VYUY_ER", NVCV_IMAGE_FORMAT_VYUY_ER);
     testOperatorInsertion("NVCV_IMAGE_FORMAT_VYUY_ER_BL", NVCV_IMAGE_FORMAT_VYUY_ER_BL);

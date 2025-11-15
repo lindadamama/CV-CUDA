@@ -1,4 +1,4 @@
-/* Copyright (c) 2021-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+/* Copyright (c) 2021-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  *
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
  * SPDX-License-Identifier: Apache-2.0
@@ -191,12 +191,14 @@ ErrorCode MorphologyVarShape::infer(const nvcv::ImageBatchVarShape &inBatch, con
     auto inData = inBatch.exportData<nvcv::ImageBatchVarShapeDataStridedCuda>(stream);
     if (inData == nullptr)
     {
-        LOG_ERROR("Input must be varshape image batch");
+        throw nvcv::Exception(nvcv::Status::ERROR_INVALID_ARGUMENT,
+                              "Input must be cuda-accessible, pitch-linear tensor");
     }
     auto outData = outBatch.exportData<nvcv::ImageBatchVarShapeDataStridedCuda>(stream);
     if (outData == nullptr)
     {
-        LOG_ERROR("Output must be varshape image batch");
+        throw nvcv::Exception(nvcv::Status::ERROR_INVALID_ARGUMENT,
+                              "Output must be cuda-accessible, pitch-linear tensor");
     }
 
     DataFormat input_format  = GetLegacyDataFormat(*inData);

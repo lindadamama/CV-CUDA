@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2023-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2023-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -737,5 +737,287 @@ TEST_P(OpInpaint, varshape_correct_shape)
         EXPECT_LE(diffsum, 5e-3);
     }
 
+    EXPECT_EQ(cudaSuccess, cudaStreamDestroy(stream));
+}
+
+TEST(OpInpaint, test_grad_corner_condition)
+{
+    int    batch         = 1;
+    int    height        = 5;
+    int    width         = 5;
+    double inpaintRadius = 2.0;
+
+    std::vector<std::vector<uint8_t>> maskVecCases;
+    // case 1:
+    // mask: 0 0 0 0 0
+    //      0 1 1 1 0
+    //      0 1 0 1 0
+    //      0 1 1 1 0
+    //      0 0 0 0 0
+    {
+        std::vector<uint8_t> maskVec(height * width, 0);
+
+        maskVec[1 * width + 1] = 1;
+        maskVec[1 * width + 2] = 1;
+        maskVec[1 * width + 3] = 1;
+        maskVec[2 * width + 1] = 1;
+        maskVec[2 * width + 3] = 1;
+        maskVec[3 * width + 1] = 1;
+        maskVec[3 * width + 2] = 1;
+        maskVec[3 * width + 3] = 1;
+        maskVecCases.emplace_back(maskVec);
+    }
+    // case 2
+    // mask: 1 0 0 0 0
+    //      0 0 0 0 0
+    //      0 0 0 0 0
+    //      0 0 0 0 0
+    //      0 0 0 0 1
+    {
+        std::vector<uint8_t> maskVec(height * width, 0);
+        maskVec[0 * width + 0] = 1;
+        maskVec[0 * width + 4] = 1;
+        maskVecCases.emplace_back(maskVec);
+    }
+
+    cudaStream_t stream;
+    EXPECT_EQ(cudaSuccess, cudaStreamCreate(&stream));
+
+    // run tensor op
+    for (auto &maskVec : maskVecCases)
+    {
+        nvcv::Tensor imgIn   = nvcv::util::CreateTensor(batch, width, height, nvcv::FMT_U8);
+        nvcv::Tensor imgMask = nvcv::util::CreateTensor(batch, width, height, nvcv::FMT_U8);
+        nvcv::Tensor imgOut  = nvcv::util::CreateTensor(batch, width, height, nvcv::FMT_U8);
+
+        auto inData   = imgIn.exportData<nvcv::TensorDataStridedCuda>();
+        auto maskData = imgMask.exportData<nvcv::TensorDataStridedCuda>();
+        auto outData  = imgOut.exportData<nvcv::TensorDataStridedCuda>();
+
+        auto inAccess   = nvcv::TensorDataAccessStridedImagePlanar::Create(*inData);
+        auto maskAccess = nvcv::TensorDataAccessStridedImagePlanar::Create(*maskData);
+        auto outAccess  = nvcv::TensorDataAccessStridedImagePlanar::Create(*outData);
+
+        int rowStride = width * nvcv::FMT_U8.planePixelStrideBytes(0);
+
+        std::vector<uint8_t> srcVec(height * width, 255);
+        ASSERT_EQ(cudaSuccess, cudaMemcpy2D(inAccess->sampleData(0), inAccess->rowStride(), srcVec.data(), rowStride,
+                                            rowStride, height, cudaMemcpyHostToDevice));
+
+        ASSERT_EQ(cudaSuccess, cudaMemcpy2D(maskAccess->sampleData(0), maskAccess->rowStride(), maskVec.data(),
+                                            rowStride, rowStride, height, cudaMemcpyHostToDevice));
+
+        int             maxBatch = 1;
+        nvcv::Size2D    maxsize{width, height};
+        cvcuda::Inpaint InpaintOp(maxBatch, maxsize);
+        EXPECT_NO_THROW(InpaintOp(stream, imgIn, imgMask, imgOut, inpaintRadius));
+
+        EXPECT_EQ(cudaSuccess, cudaStreamSynchronize(stream));
+
+        std::vector<uint8_t> testVec(height * rowStride / sizeof(uint8_t));
+        // Copy output data to Host
+        ASSERT_EQ(cudaSuccess, cudaMemcpy2D(testVec.data(), rowStride, outAccess->sampleData(0), outAccess->rowStride(),
+                                            rowStride, height, cudaMemcpyDeviceToHost));
+
+        std::vector<uint8_t> goldVec(height * rowStride / sizeof(uint8_t));
+        Inpaint<uint8_t>(srcVec, goldVec, maskVec, inpaintRadius, height, width);
+
+        //ratio = count(abs(diff) > 1) / size
+        //mean(abs(diff/255))
+        int   count   = 0;
+        float diffsum = 0.f;
+        for (int x = 0; x < (int)testVec.size(); x++)
+        {
+            if (abs(testVec[x] - goldVec[x]) > 1)
+            {
+                count++;
+            }
+            diffsum += abs(testVec[x] - goldVec[x]);
+        }
+        float ratio = (float)count / (height * width);
+        EXPECT_LE(ratio, 5e-2);
+
+        diffsum /= 255;
+        diffsum /= (height * width);
+        EXPECT_LE(diffsum, 5e-3);
+    }
+
+    // run varshape op
+    for (auto &maskVec : maskVecCases)
+    {
+        auto fmt = nvcv::FMT_U8;
+
+        std::vector<nvcv::Image> imgSrc, imgDst, imgMask;
+        imgSrc.emplace_back(nvcv::Size2D{width, height}, fmt);
+        imgMask.emplace_back(nvcv::Size2D{width, height}, fmt);
+        imgDst.emplace_back(nvcv::Size2D{width, height}, fmt);
+
+        nvcv::ImageBatchVarShape batchSrc(batch);
+        batchSrc.pushBack(imgSrc.begin(), imgSrc.end());
+
+        nvcv::ImageBatchVarShape batchMask(batch);
+        batchMask.pushBack(imgMask.begin(), imgMask.end());
+
+        nvcv::ImageBatchVarShape batchDst(batch);
+        batchDst.pushBack(imgDst.begin(), imgDst.end());
+
+        std::vector<uint8_t> srcVec(height * width, 255);
+        const auto           srcData  = imgSrc[0].exportData<nvcv::ImageDataStridedCuda>();
+        const auto           maskData = imgMask[0].exportData<nvcv::ImageDataStridedCuda>();
+
+        int srcWidth  = srcData->plane(0).width;
+        int srcHeight = srcData->plane(0).height;
+
+        int srcRowStride = srcWidth * fmt.planePixelStrideBytes(0);
+
+        ASSERT_EQ(cudaSuccess, cudaMemcpy2D(srcData->plane(0).basePtr, srcData->plane(0).rowStride, srcVec.data(),
+                                            srcRowStride, srcRowStride, srcHeight, cudaMemcpyHostToDevice));
+
+        ASSERT_EQ(cudaSuccess, cudaMemcpy2D(maskData->plane(0).basePtr, maskData->plane(0).rowStride, maskVec.data(),
+                                            srcRowStride, srcRowStride, srcHeight, cudaMemcpyHostToDevice));
+
+        int             maxBatch = 4;
+        nvcv::Size2D    maxsize{(int)(480 * 1.1), (int)(480 * 1.1)};
+        cvcuda::Inpaint InpaintOp(maxBatch, maxsize);
+        EXPECT_NO_THROW(InpaintOp(stream, batchSrc, batchMask, batchDst, inpaintRadius));
+
+        EXPECT_EQ(cudaSuccess, cudaStreamSynchronize(stream));
+
+        const auto dstData = imgDst[0].exportData<nvcv::ImageDataStridedCuda>();
+        assert(dstData->numPlanes() == 1);
+
+        int dstWidth  = dstData->plane(0).width;
+        int dstHeight = dstData->plane(0).height;
+
+        int dstRowStride = dstWidth * fmt.planePixelStrideBytes(0);
+
+        std::vector<uint8_t> testVec(dstHeight * dstRowStride / sizeof(uint8_t));
+
+        // Copy output data to Host
+        ASSERT_EQ(cudaSuccess,
+                  cudaMemcpy2D(testVec.data(), dstRowStride, dstData->plane(0).basePtr, dstData->plane(0).rowStride,
+                               dstRowStride, // vec has no padding
+                               dstHeight, cudaMemcpyDeviceToHost));
+
+        std::vector<uint8_t> goldVec(dstHeight * dstRowStride / sizeof(uint8_t));
+        Inpaint<uint8_t>(srcVec, goldVec, maskVec, inpaintRadius, dstHeight, dstWidth);
+
+        //ratio = count(abs(diff) > 1) / size
+        //mean(abs(diff/255))
+        int   count   = 0;
+        float diffsum = 0.f;
+        for (int x = 0; x < (int)testVec.size(); x++)
+        {
+            if (abs(testVec[x] - goldVec[x]) > 1)
+            {
+                count++;
+            }
+            diffsum += abs(testVec[x] - goldVec[x]);
+        }
+        float ratio = (float)count / (dstHeight * dstWidth);
+        EXPECT_LE(ratio, 5e-2);
+
+        diffsum /= 255;
+        diffsum /= (dstHeight * dstWidth);
+        EXPECT_LE(diffsum, 5e-3);
+    }
+
+    EXPECT_EQ(cudaSuccess, cudaStreamDestroy(stream));
+}
+
+// clang-format off
+NVCV_TEST_SUITE_P(OpInpaint_Negative, nvcv::test::ValueList<nvcv::ImageFormat, nvcv::ImageFormat, nvcv::ImageFormat>
+    {
+        //fmtSrc, fmtDst, fmtMask
+        // invalid input, output
+        {nvcv::FMT_RGB8p, nvcv::FMT_RGB8, nvcv::FMT_U8},
+        {nvcv::FMT_RGBf16, nvcv::FMT_RGB8, nvcv::FMT_U8},
+        {nvcv::FMT_RGB8, nvcv::FMT_RGB8p, nvcv::FMT_U8},
+        {nvcv::FMT_RGB8, nvcv::FMT_RGBf32, nvcv::FMT_U8},
+        {nvcv::FMT_RGBA8, nvcv::FMT_RGB8, nvcv::FMT_U8},
+        // invalid mask
+        {nvcv::FMT_RGB8, nvcv::FMT_RGB8, nvcv::FMT_F32},
+        {nvcv::FMT_RGB8, nvcv::FMT_RGB8, nvcv::FMT_RGB8},
+    });
+
+// clang-format on
+
+TEST(OpInpaint_Negative, create_will_null_handle)
+{
+    EXPECT_EQ(NVCV_ERROR_INVALID_ARGUMENT, cvcudaInpaintCreate(nullptr, 1, 1, 1));
+}
+
+TEST_P(OpInpaint_Negative, invalid_parameters)
+{
+    const int    maxBatch      = 4;
+    const int    maxWidth      = 32;
+    const int    maxHeight     = 32;
+    const double inpaintRadius = 1.0;
+    nvcv::Size2D maxsize{maxWidth, maxHeight};
+
+    const int batch  = 2;
+    const int width  = 16;
+    const int height = 16;
+
+    cudaStream_t stream;
+    EXPECT_EQ(cudaSuccess, cudaStreamCreate(&stream));
+
+    nvcv::ImageFormat fmtSrc  = GetParamValue<0>();
+    nvcv::ImageFormat fmtDst  = GetParamValue<1>();
+    nvcv::ImageFormat fmtMask = GetParamValue<2>();
+
+    nvcv::Tensor imgIn   = nvcv::util::CreateTensor(batch, width, height, fmtSrc);
+    nvcv::Tensor imgMask = nvcv::util::CreateTensor(batch, width, height, fmtMask);
+    nvcv::Tensor imgOut  = nvcv::util::CreateTensor(batch, width, height, fmtDst);
+
+    cvcuda::Inpaint InpaintOp(maxBatch, maxsize);
+    EXPECT_EQ(NVCV_ERROR_INVALID_ARGUMENT,
+              nvcv::ProtectCall([&] { InpaintOp(stream, imgIn, imgMask, imgOut, inpaintRadius); }));
+
+    EXPECT_EQ(cudaSuccess, cudaStreamSynchronize(stream));
+    EXPECT_EQ(cudaSuccess, cudaStreamDestroy(stream));
+}
+
+TEST_P(OpInpaint_Negative, invalid_parameters_varshape)
+{
+    const int    maxBatch      = 4;
+    const int    maxWidth      = 32;
+    const int    maxHeight     = 32;
+    const double inpaintRadius = 1.0;
+    nvcv::Size2D maxsize{maxWidth, maxHeight};
+
+    const int batch  = 2;
+    const int width  = 16;
+    const int height = 16;
+
+    cudaStream_t stream;
+    EXPECT_EQ(cudaSuccess, cudaStreamCreate(&stream));
+
+    nvcv::ImageFormat fmtSrc  = GetParamValue<0>();
+    nvcv::ImageFormat fmtDst  = GetParamValue<1>();
+    nvcv::ImageFormat fmtMask = GetParamValue<2>();
+
+    std::vector<nvcv::Image> imgSrc, imgDst, imgMask;
+    for (int i = 0; i < batch; i++)
+    {
+        imgSrc.emplace_back(nvcv::Size2D{width, height}, fmtSrc);
+        imgMask.emplace_back(nvcv::Size2D{width, height}, fmtMask);
+        imgDst.emplace_back(nvcv::Size2D{width, height}, fmtDst);
+    }
+
+    nvcv::ImageBatchVarShape batchSrc(batch);
+    batchSrc.pushBack(imgSrc.begin(), imgSrc.end());
+
+    nvcv::ImageBatchVarShape batchMask(batch);
+    batchMask.pushBack(imgMask.begin(), imgMask.end());
+
+    nvcv::ImageBatchVarShape batchDst(batch);
+    batchDst.pushBack(imgDst.begin(), imgDst.end());
+
+    cvcuda::Inpaint InpaintOp(maxBatch, maxsize);
+    EXPECT_EQ(NVCV_ERROR_INVALID_ARGUMENT,
+              nvcv::ProtectCall([&] { InpaintOp(stream, batchSrc, batchMask, batchDst, inpaintRadius); }));
+
+    EXPECT_EQ(cudaSuccess, cudaStreamSynchronize(stream));
     EXPECT_EQ(cudaSuccess, cudaStreamDestroy(stream));
 }

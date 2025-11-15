@@ -21,6 +21,7 @@
 #include <common/TensorDataUtils.hpp>
 #include <common/ValueTests.hpp>
 #include <cvcuda/OpGaussian.hpp>
+#include <cvcuda/cuda_tools/MathWrappers.hpp> // for round
 #include <cvcuda/cuda_tools/TypeTraits.hpp>
 #include <nvcv/Image.hpp>
 #include <nvcv/ImageBatch.hpp>
@@ -40,9 +41,11 @@ NVCV_TEST_SUITE_P(OpGaussian, test::ValueList<int, int, int, NVCVImageFormat, in
     {    176,    113,       1,      NVCV_IMAGE_FORMAT_U8,      3,      3,    0.5,    0.5, NVCV_BORDER_CONSTANT},
     {    123,     66,       2,      NVCV_IMAGE_FORMAT_U8,      5,      5,   0.75,   0.75, NVCV_BORDER_CONSTANT},
     {    123,     33,       3,    NVCV_IMAGE_FORMAT_RGB8,      3,      3,    1.0,    1.0, NVCV_BORDER_WRAP},
+    {    111,     33,       3,    NVCV_IMAGE_FORMAT_RGB8,      3,      3,    1.0,   -1.0, NVCV_BORDER_WRAP},
     {     42,     53,       4,   NVCV_IMAGE_FORMAT_RGBA8,      7,      7,    0.4,    0.4, NVCV_BORDER_REPLICATE},
     {     13,     42,       3,    NVCV_IMAGE_FORMAT_RGB8,      3,      3,    0.9,    0.9, NVCV_BORDER_REFLECT},
-    {     62,    111,       4,   NVCV_IMAGE_FORMAT_RGBA8,      9,      9,    0.8,    0.8, NVCV_BORDER_REFLECT101}
+    {     62,    111,       4,   NVCV_IMAGE_FORMAT_RGBA8,      9,      9,    0.8,    0.8, NVCV_BORDER_REFLECT101},
+    {    128,    128,       1,      NVCV_IMAGE_FORMAT_U8,     -1,     -1,    0.5,    0.5, NVCV_BORDER_CONSTANT}
 });
 
 // clang-format on
@@ -72,7 +75,22 @@ TEST_P(OpGaussian, correct_output)
     double2 sigma{sigmaX, sigmaY};
     int2    kernelAnchor{-1, -1};
 
+    int newKsizeX = ksizeX;
+    int newKsizeY = ksizeY;
+
+    // auto detection of kernel size from sigma
+    bool is8U = format.planeDataType(0) == nvcv::TYPE_U8;
+    if (ksizeX <= 0 && sigmaX > 0)
+    {
+        newKsizeX = nvcv::cuda::round<int>(sigmaX * (is8U ? 3 : 4) * 2 + 1) | 1;
+    }
+    if (ksizeY <= 0 && sigmaY > 0)
+    {
+        newKsizeY = nvcv::cuda::round<int>(sigmaY * (is8U ? 3 : 4) * 2 + 1) | 1;
+    }
+
     nvcv::Size2D kernelSize(ksizeX, ksizeY);
+    nvcv::Size2D newKernelSize(newKsizeX, newKsizeY);
 
     nvcv::Tensor inTensor  = nvcv::util::CreateTensor(batches, width, height, format);
     nvcv::Tensor outTensor = nvcv::util::CreateTensor(batches, width, height, format);
@@ -112,7 +130,7 @@ TEST_P(OpGaussian, correct_output)
     ASSERT_EQ(cudaSuccess, cudaMemcpy(inData->basePtr(), inVec.data(), inBufSize, cudaMemcpyHostToDevice));
 
     // run operator
-    cvcuda::Gaussian gaussianOp(kernelSize, 1);
+    cvcuda::Gaussian gaussianOp(newKernelSize, 1);
 
     EXPECT_NO_THROW(gaussianOp(stream, inTensor, outTensor, kernelSize, sigma, borderMode));
 
@@ -126,10 +144,10 @@ TEST_P(OpGaussian, correct_output)
     ASSERT_EQ(cudaSuccess, cudaMemcpy(testVec.data(), outData->basePtr(), outBufSize, cudaMemcpyDeviceToHost));
 
     // generate gold result
-    std::vector<float> kernel = test::ComputeGaussianKernel(kernelSize, sigma);
+    std::vector<float> kernel = test::ComputeGaussianKernel(newKernelSize, sigma);
 
-    test::Convolve(goldVec, outStrides, inVec, inStrides, shape, format, kernel, kernelSize, kernelAnchor, borderMode,
-                   borderValue);
+    test::Convolve(goldVec, outStrides, inVec, inStrides, shape, format, kernel, newKernelSize, kernelAnchor,
+                   borderMode, borderValue);
 
     EXPECT_EQ(testVec, goldVec);
 }
@@ -157,7 +175,21 @@ TEST_P(OpGaussian, varshape_correct_output)
     double2 sigma{sigmaX, sigmaY};
     int2    kernelAnchor{-1, -1};
 
-    nvcv::Size2D kernelSize(ksizeX, ksizeY);
+    int newKsizeX = ksizeX;
+    int newKsizeY = ksizeY;
+
+    // auto detection of kernel size from sigma
+    bool is8U = format.planeDataType(0) == nvcv::TYPE_U8;
+    if (ksizeX <= 0 && sigmaX > 0)
+    {
+        newKsizeX = nvcv::cuda::round<int>(sigmaX * (is8U ? 3 : 4) * 2 + 1) | 1;
+    }
+    if (ksizeY <= 0 && sigmaY > 0)
+    {
+        newKsizeY = nvcv::cuda::round<int>(sigmaY * (is8U ? 3 : 4) * 2 + 1) | 1;
+    }
+
+    nvcv::Size2D kernelSize(newKsizeX, newKsizeY);
 
     // Create input varshape
     std::default_random_engine         rng;
@@ -440,4 +472,9 @@ TEST(OpGaussianVarshape_Negative, varshape_hasDifferentFormat)
     }
 
     ASSERT_EQ(cudaSuccess, cudaStreamDestroy(stream));
+}
+
+TEST(OpGaussian_Negative, create_null_handle)
+{
+    EXPECT_EQ(cvcudaGaussianCreate(nullptr, 224, 224, 10), NVCV_ERROR_INVALID_ARGUMENT);
 }

@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2023 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2023-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import nvcv
 import cvcuda
 import pytest as t
 import cvcuda_util as util
@@ -26,56 +25,56 @@ RNG = np.random.default_rng(12345)
     "src_args, twist_args",
     [
         (
-            ((1, 16, 23, 3), nvcv.Type.U8, "NHWC"),
-            ((3,), nvcv.Type._4F32, "HW"),
+            ((1, 16, 23, 3), cvcuda.Type.U8, "NHWC"),
+            ((3,), cvcuda.Type._4F32, "HW"),
         ),
         (
-            ((5, 33, 28), nvcv.Type._3U8, "NHWC"),
-            ((5, 3), nvcv.Type._4F32, "NHW"),
+            ((5, 33, 28), cvcuda.Type._3U8, "NHWC"),
+            ((5, 3), cvcuda.Type._4F32, "NHW"),
         ),
         (
-            ((16, 23, 3), nvcv.Type.U8, "HWC"),
-            ((3, 4), nvcv.Type.F32, "HW"),
+            ((16, 23, 3), cvcuda.Type.U8, "HWC"),
+            ((3, 4), cvcuda.Type.F32, "HW"),
         ),
         (
-            ((33, 28), nvcv.Type._3U8, "HWC"),
-            ((3, 4), nvcv.Type.F32, "HW"),
+            ((33, 28), cvcuda.Type._3U8, "HWC"),
+            ((3, 4), cvcuda.Type.F32, "HW"),
         ),
         (
-            ((9, 16, 23, 3), nvcv.Type.U16, "NHWC"),
-            ((3,), nvcv.Type._4F32, "HW"),
+            ((9, 16, 23, 3), cvcuda.Type.U16, "NHWC"),
+            ((3,), cvcuda.Type._4F32, "HW"),
         ),
         (
-            ((9, 16, 23), nvcv.Type._4S16, "NHWC"),
-            ((3,), nvcv.Type._4F32, "HW"),
+            ((9, 16, 23), cvcuda.Type._4S16, "NHWC"),
+            ((3,), cvcuda.Type._4F32, "HW"),
         ),
         (
-            ((13, 33, 28), nvcv.Type._3U16, "NHWC"),
-            ((13, 3), nvcv.Type._4F32, "NHW"),
+            ((13, 33, 28), cvcuda.Type._3U16, "NHWC"),
+            ((13, 3), cvcuda.Type._4F32, "NHW"),
         ),
         (
-            ((9, 16, 23, 4), nvcv.Type.S32, "NHWC"),
-            ((3,), nvcv.Type._4F64, "HW"),
+            ((9, 16, 23, 4), cvcuda.Type.S32, "NHWC"),
+            ((3,), cvcuda.Type._4F64, "HW"),
         ),
         (
-            ((13, 33, 28), nvcv.Type._4S32, "NHWC"),
-            ((13, 3), nvcv.Type._4F64, "NHW"),
+            ((13, 33, 28), cvcuda.Type._4S32, "NHWC"),
+            ((13, 3), cvcuda.Type._4F64, "NHW"),
         ),
         (
-            ((17, 16, 23, 3), nvcv.Type.F32, "NHWC"),
-            ((3, 4), nvcv.Type.F32, "HW"),
+            ((17, 16, 23, 3), cvcuda.Type.F32, "NHWC"),
+            ((3, 4), cvcuda.Type.F32, "HW"),
         ),
         (
-            ((21, 33, 28), nvcv.Type._3F32, "NHWC"),
-            ((21, 3, 4), nvcv.Type.F32, "NHW"),
+            ((21, 33, 28), cvcuda.Type._3F32, "NHWC"),
+            ((21, 3, 4), cvcuda.Type.F32, "NHW"),
         ),
         (
-            ((16, 23, 3), nvcv.Type.F32, "HWC"),
-            ((3,), nvcv.Type._4F32, "HW"),
+            ((16, 23, 3), cvcuda.Type.F32, "HWC"),
+            ((3,), cvcuda.Type._4F32, "HW"),
         ),
         (
-            ((33, 28), nvcv.Type._3F32, "HWC"),
-            ((3,), nvcv.Type._4F32, "HW"),
+            ((33, 28), cvcuda.Type._3F32, "HWC"),
+            ((3,), cvcuda.Type._4F32, "HW"),
         ),
     ],
 )
@@ -106,22 +105,22 @@ def test_op_remap_api(src_args, twist_args):
 @t.mark.parametrize(
     "num_images, dtype, max_size, twist_args",
     [
-        (4, np.uint8, (73, 98), ((3,), nvcv.Type._4F32, "HW")),
-        (11, np.uint16, (33, 32), ((11, 3), nvcv.Type._4F32, "NHW")),
-        (8, np.int16, (13, 42), ((3, 4), nvcv.Type.F32, "HW")),
-        (3, np.float32, (53, 68), ((3, 3, 4), nvcv.Type.F32, "NHW")),
+        (4, np.uint8, (73, 98), ((3,), cvcuda.Type._4F32, "HW")),
+        (11, np.uint16, (33, 32), ((11, 3), cvcuda.Type._4F32, "NHW")),
+        (8, np.int16, (13, 42), ((3, 4), cvcuda.Type.F32, "HW")),
+        (3, np.float32, (53, 68), ((3, 3, 4), cvcuda.Type.F32, "NHW")),
     ],
 )
 def test_op_colortwistvarshape_api(num_images, dtype, max_size, twist_args):
     stream = cvcuda.Stream()
 
-    b_src = nvcv.ImageBatchVarShape(num_images)
+    b_src = cvcuda.ImageBatchVarShape(num_images)
     for _ in range(num_images):
         w = RNG.integers(1, max_size[0] + 1)
         h = RNG.integers(1, max_size[1] + 1)
         shape = (h, w, 3)
         h_data = util.generate_data(shape, dtype, rng=RNG)
-        image = util.to_nvcv_image(h_data)
+        image = util.to_cvcuda_image(h_data)
         b_src.pushback(image)
 
     twist = util.create_tensor(*twist_args)

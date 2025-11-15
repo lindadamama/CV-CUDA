@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2022-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2022-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -52,8 +52,3 @@ foreach(VER ${PYTHON_VERSIONS})
 
     list(APPEND CPACK_COMPONENTS_ALL ${python_module_name})
 endforeach()
-
-if(BUILD_TESTS)
-    set(CPACK_DEBIAN_TESTS_PACKAGE_DEPENDS
-            "${CPACK_DEBIAN_TESTS_PACKAGE_DEPENDS}, python3-pytest")
-endif()

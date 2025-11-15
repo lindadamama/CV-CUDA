@@ -656,10 +656,12 @@ int GetNumChannels(NVCVSwizzle swizzle) noexcept
         {
             int idx = channels[i] - NVCV_CHANNEL_X;
 
+            // coverity[underrun-local]
             if (hist[idx] == 0)
             {
                 ++count;
             }
+            // coverity[underrun-local]
             hist[idx] += 1;
         }
     }
@@ -704,7 +706,7 @@ int GetNumChannels(NVCVPacking packing) noexcept
 
 std::array<int32_t, 4> GetBitsPerComponent(NVCVPacking packing) noexcept
 {
-    std::array<int32_t, 4> bits;
+    std::array<int32_t, 4> bits = {}; // Initialize all elements to 0
 
     NVCVPackingParams p = GetPackingParams(packing);
 
@@ -712,14 +714,16 @@ std::array<int32_t, 4> GetBitsPerComponent(NVCVPacking packing) noexcept
 
     std::array<NVCVChannel, 4> channels = GetChannels(p.swizzle);
 
-    int i;
-    for (i = 0; i < ncomp; ++i)
+    for (int i = 0; i < ncomp; ++i)
     {
-        bits[i] = p.bits[channels[i] - NVCV_CHANNEL_X];
-    }
-    for (; i < 4; ++i)
-    {
-        bits[i] = 0;
+        // Validate array index to prevent buffer overrun
+        // Only NVCV_CHANNEL_X through NVCV_CHANNEL_W are valid for indexing p.bits
+        if (channels[i] >= NVCV_CHANNEL_X && channels[i] <= NVCV_CHANNEL_W)
+        {
+            // coverity[underrun-local]
+            bits[i] = p.bits[channels[i] - NVCV_CHANNEL_X];
+        }
+        // For NVCV_CHANNEL_0, NVCV_CHANNEL_1, or invalid channels, bits[i] remains 0
     }
 
     return bits;
@@ -848,9 +852,10 @@ NVCVSwizzle FlipByteOrder(NVCVSwizzle swizzle, int off, int len) noexcept
     {
         if (i >= off && i < off + len && NVCV_CHANNEL_X <= comp[i] && comp[i] <= NVCV_CHANNEL_W)
         {
-            int pos  = comp[i] - NVCV_CHANNEL_X;
-            m        = std::min(m, pos);
-            M        = std::max(M, pos);
+            int pos = comp[i] - NVCV_CHANNEL_X;
+            m       = std::min(m, pos);
+            M       = std::max(M, pos);
+            // coverity[underrun-local]
             mem[pos] = (NVCVChannel)(i + NVCV_CHANNEL_X);
         }
     }
@@ -869,6 +874,7 @@ NVCVSwizzle FlipByteOrder(NVCVSwizzle swizzle, int off, int len) noexcept
     {
         if (NVCV_CHANNEL_X <= flipped[i] && flipped[i] <= NVCV_CHANNEL_W)
         {
+            // coverity[underrun-local]
             comp[flipped[i] - NVCV_CHANNEL_X] = (NVCVChannel)(i + NVCV_CHANNEL_X);
         }
     }

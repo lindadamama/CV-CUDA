@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2023-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2023-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,9 +17,10 @@
 
 #include "DeviceTensorBatchWrap.hpp"
 
-#include <common/HashUtils.hpp>          // for NVCV_INSTANTIATE_TEST_SUITE_P, etc.
-#include <common/TypedTests.hpp>         // for NVCV_MIXTYPED_TEST_SUITE_P, etc.
-#include <common/ValueTests.hpp>         // for StringLiteral
+#include <common/HashUtils.hpp>  // for NVCV_INSTANTIATE_TEST_SUITE_P, etc.
+#include <common/TypedTests.hpp> // for NVCV_MIXTYPED_TEST_SUITE_P, etc.
+#include <common/ValueTests.hpp> // for StringLiteral
+#include <cvcuda/cuda_tools/Compat.hpp>
 #include <cvcuda/cuda_tools/MathOps.hpp> // for operator == to allow EXPECT_EQ
 #include <cvcuda/cuda_tools/TensorBatchWrap.hpp>
 #include <nvcv/Image.hpp>            // for Image, etc.
@@ -125,7 +126,7 @@ using TensorBatchWrapHelperT = typename TensorBatchWrapHelper<T, NDIM, INNER_DIM
 
 NVCV_TYPED_TEST_SUITE(TensorBatchWrapTensorTest,
                       ttype::Types<NVCV_TEST_ROW(16, NVCV_DATA_TYPE_U8, uchar1, 3, 32, SetThroughTensor),
-                                   NVCV_TEST_ROW(8, NVCV_DATA_TYPE_4F64, double4, 2, 8, SetThroughTensor),
+                                   NVCV_TEST_ROW(8, NVCV_DATA_TYPE_4F64, double4_16a, 2, 8, SetThroughTensor),
                                    NVCV_TEST_ROW(16, NVCV_DATA_TYPE_3F32, float3, 4, 8, SetThroughTensor),
                                    NVCV_TEST_ROW(64, NVCV_DATA_TYPE_2U8, uchar2, 1, -1, SetThroughSubscript),
                                    NVCV_TEST_ROW(16, NVCV_DATA_TYPE_3S32, int3, 3, 16, SetThroughSubscript),

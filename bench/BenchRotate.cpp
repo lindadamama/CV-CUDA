@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2023-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2023-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -64,9 +64,9 @@ try
         nvcv::Tensor angleDegTensor({{shape.x}, "N"}, nvcv::TYPE_F64);
         nvcv::Tensor shiftTensor({{shape.x, 2}, "NW"}, nvcv::TYPE_F64);
 
-        benchutils::FillTensor<double>(angleDegTensor, [&angleDeg](const long4 &){ return angleDeg; });
+        benchutils::FillTensor<double>(angleDegTensor, [&angleDeg](const long4_16a &){ return angleDeg; });
         benchutils::FillTensor<double>(shiftTensor,
-                                       [&shift](const long4 &c){ return nvcv::cuda::GetElement(shift, c.y); });
+                                       [&shift](const long4_16a &c){ return nvcv::cuda::GetElement(shift, c.y); });
 
         state.exec(nvbench::exec_tag::sync,
                    [&op, &src, &dst, &angleDegTensor, &shiftTensor, &interpType](nvbench::launch &launch)

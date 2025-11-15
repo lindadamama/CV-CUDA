@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2023 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2023-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -40,7 +40,7 @@ try
 
     nvcv::Tensor kernelAnchor({{shape.x}, "N"}, nvcv::TYPE_2S32);
 
-    benchutils::FillTensor<int2>(kernelAnchor, [](const long4 &){ return int2{-1, -1}; });
+    benchutils::FillTensor<int2>(kernelAnchor, [](auto &){ return int2{-1, -1}; });
 
     if (varShape < 0) // negative var shape means use Tensor
     {

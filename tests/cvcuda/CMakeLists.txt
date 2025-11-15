@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2022-2023 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2022-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,13 +15,15 @@
 
 # Create build tree
 
-# System tests for cvcuda public API
-add_subdirectory(system)
+if(BUILD_TESTS_CPP)
+    # System tests for cvcuda public API
+    add_subdirectory(system)
 
-# Unit tests for cvcuda utilities and operator internals
-add_subdirectory(unit)
+    # Unit tests for cvcuda utilities and operator internals
+    add_subdirectory(unit)
+endif()
 
-if(BUILD_PYTHON)
+if(BUILD_TESTS_PYTHON AND BUILD_PYTHON)
     # System tests for cvcuda python
     add_subdirectory(python)
 endif()

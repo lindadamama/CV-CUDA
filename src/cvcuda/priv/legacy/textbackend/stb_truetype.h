@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2022-2023 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2022-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -1267,16 +1267,17 @@ static int stbtt_GetFontOffsetForIndex_internal(unsigned char *font_collection, 
 
 static stbtt__buf stbtt__get_subrs(stbtt__buf cff, stbtt__buf fontdict)
 {
-    stbtt_uint32 subrsoff = 0, private_loc[2] = {0, 0};
+    stbtt_uint32 subrsoff[1] = {0}, private_loc[2] = {0, 0};
     stbtt__buf   pdict;
     stbtt__dict_get_ints(&fontdict, 18, 2, private_loc);
     if (!private_loc[1] || !private_loc[0])
         return stbtt__new_buf(NULL, 0);
     pdict = stbtt__buf_range(&cff, private_loc[1], private_loc[0]);
-    stbtt__dict_get_ints(&pdict, 19, 1, &subrsoff);
-    if (!subrsoff)
+    // coverity[overrun-buffer-val] - outcount=1, only subrsoff[0] accessed
+    stbtt__dict_get_ints(&pdict, 19, 1, subrsoff);
+    if (!subrsoff[0])
         return stbtt__new_buf(NULL, 0);
-    stbtt__buf_seek(&cff, private_loc[1] + subrsoff);
+    stbtt__buf_seek(&cff, private_loc[1] + subrsoff[0]);
     return stbtt__cff_get_index(&cff);
 }
 
@@ -1310,7 +1311,7 @@ static int stbtt_InitFont_internal(stbtt_fontinfo *info, unsigned char *data, in
     {
         // initialization for CFF / Type2 fonts (OTF)
         stbtt__buf   b, topdict, topdictidx;
-        stbtt_uint32 cstype = 2, charstrings = 0, fdarrayoff = 0, fdselectoff = 0;
+        stbtt_uint32 cstype[1] = {2}, charstrings[1] = {0}, fdarrayoff[1] = {0}, fdselectoff[1] = {0};
         stbtt_uint32 cff;
 
         cff = stbtt__find_table(data, fontstart, "CFF ");
@@ -1336,29 +1337,30 @@ static int stbtt_InitFont_internal(stbtt_fontinfo *info, unsigned char *data, in
         stbtt__cff_get_index(&b); // string INDEX
         info->gsubrs = stbtt__cff_get_index(&b);
 
-        stbtt__dict_get_ints(&topdict, 17, 1, &charstrings);
-        stbtt__dict_get_ints(&topdict, 0x100 | 6, 1, &cstype);
-        stbtt__dict_get_ints(&topdict, 0x100 | 36, 1, &fdarrayoff);
-        stbtt__dict_get_ints(&topdict, 0x100 | 37, 1, &fdselectoff);
+        // coverity[overrun-buffer-val] - outcount=1, only charstrings[0] accessed
+        stbtt__dict_get_ints(&topdict, 17, 1, charstrings);
+        stbtt__dict_get_ints(&topdict, 0x100 | 6, 1, cstype);
+        stbtt__dict_get_ints(&topdict, 0x100 | 36, 1, fdarrayoff);
+        stbtt__dict_get_ints(&topdict, 0x100 | 37, 1, fdselectoff);
         info->subrs = stbtt__get_subrs(b, topdict);
 
         // we only support Type 2 charstrings
-        if (cstype != 2)
+        if (cstype[0] != 2)
             return 0;
-        if (charstrings == 0)
+        if (charstrings[0] == 0)
             return 0;
 
-        if (fdarrayoff)
+        if (fdarrayoff[0])
         {
             // looks like a CID font
-            if (!fdselectoff)
+            if (!fdselectoff[0])
                 return 0;
-            stbtt__buf_seek(&b, fdarrayoff);
+            stbtt__buf_seek(&b, fdarrayoff[0]);
             info->fontdicts = stbtt__cff_get_index(&b);
-            info->fdselect  = stbtt__buf_range(&b, fdselectoff, b.size - fdselectoff);
+            info->fdselect  = stbtt__buf_range(&b, fdselectoff[0], b.size - fdselectoff[0]);
         }
 
-        stbtt__buf_seek(&b, charstrings);
+        stbtt__buf_seek(&b, charstrings[0]);
         info->charstrings = stbtt__cff_get_index(&b);
     }
 
@@ -2321,12 +2323,18 @@ static int stbtt__GetGlyphShapeT2(const stbtt_fontinfo *info, int glyph_index, s
     stbtt__csctx output_ctx = STBTT__CSCTX_INIT(0);
     if (stbtt__run_charstring(info, glyph_index, &count_ctx))
     {
-        *pvertices = (stbtt_vertex *)STBTT_malloc(count_ctx.num_vertices * sizeof(stbtt_vertex), info->userdata);
-        output_ctx.pvertices = *pvertices;
-        if (stbtt__run_charstring(info, glyph_index, &output_ctx))
+        if (count_ctx.num_vertices > 0)
         {
-            STBTT_assert(output_ctx.num_vertices == count_ctx.num_vertices);
-            return output_ctx.num_vertices;
+            *pvertices = (stbtt_vertex *)STBTT_malloc(count_ctx.num_vertices * sizeof(stbtt_vertex), info->userdata);
+            if (*pvertices)
+            {
+                output_ctx.pvertices = *pvertices;
+                if (stbtt__run_charstring(info, glyph_index, &output_ctx))
+                {
+                    STBTT_assert(output_ctx.num_vertices == count_ctx.num_vertices);
+                    return output_ctx.num_vertices;
+                }
+            }
         }
     }
     *pvertices = NULL;
@@ -3509,14 +3517,19 @@ STBTT_DEF void stbtt_Rasterize(stbtt__bitmap *result, float flatness_in_pixels, 
     float         scale           = scale_x > scale_y ? scale_y : scale_x;
     int           winding_count   = 0;
     int          *winding_lengths = NULL;
+    // coverity[overwrite_var] - winding_lengths is NULL here, no leak possible
     stbtt__point *windings = stbtt_FlattenCurves(vertices, num_verts, flatness_in_pixels / scale, &winding_lengths,
                                                  &winding_count, userdata);
     if (windings)
     {
         stbtt__rasterize(result, windings, winding_lengths, winding_count, scale_x, scale_y, shift_x, shift_y, x_off,
                          y_off, invert, userdata);
-        STBTT_free(winding_lengths, userdata);
         STBTT_free(windings, userdata);
+    }
+    // Free winding_lengths regardless (defensive, though stbtt_FlattenCurves should have freed it on error)
+    if (winding_lengths)
+    {
+        STBTT_free(winding_lengths, userdata);
     }
 }
 

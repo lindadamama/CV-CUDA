@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2023-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2023-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -70,8 +70,8 @@ try
         nvcv::Tensor topTensor({{srcShape.x, 1, 1, 1}, "NHWC"}, nvcv::TYPE_S32);
         nvcv::Tensor leftTensor({{srcShape.x, 1, 1, 1}, "NHWC"}, nvcv::TYPE_S32);
 
-        benchutils::FillTensor<int>(topTensor, [&top](const long4 &){ return top; });
-        benchutils::FillTensor<int>(leftTensor, [&left](const long4 &){ return left; });
+        benchutils::FillTensor<int>(topTensor, [&top](const long4_16a &){ return top; });
+        benchutils::FillTensor<int>(leftTensor, [&left](const long4_16a &){ return left; });
 
         state.exec(nvbench::exec_tag::sync,
                    [&op, &src, &dst, &topTensor, &leftTensor, &borderType, &borderValue](nvbench::launch &launch)

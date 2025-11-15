@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2023-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2023-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -391,4 +391,207 @@ TEST_P(OpFindHomography, varshape_correct_output)
         }
     }
 #endif
+}
+
+TEST(OpFindHomography, degenerate_identical_source_points)
+{
+    int numSamples = 2;
+    int numPoints  = 16;
+
+    nvcv::Tensor srcPoints(
+        {
+            {numSamples, numPoints},
+            "NW"
+    },
+        nvcv::TYPE_2F32);
+    nvcv::Tensor dstPoints(
+        {
+            {numSamples, numPoints},
+            "NW"
+    },
+        nvcv::TYPE_2F32);
+    nvcv::Tensor models(
+        {
+            {numSamples, 3, 3},
+            "NHW"
+    },
+        nvcv::TYPE_F32);
+
+    auto srcData    = srcPoints.exportData<nvcv::TensorDataStridedCuda>();
+    auto dstData    = dstPoints.exportData<nvcv::TensorDataStridedCuda>();
+    auto modelsData = models.exportData<nvcv::TensorDataStridedCuda>();
+
+    std::vector<float> srcVec(2 * numSamples * numPoints);
+    std::vector<float> dstVec(2 * numSamples * numPoints);
+    std::vector<float> estimatedModelsVec(numSamples * 9);
+
+    for (int i = 0; i < numSamples; i++)
+    {
+        float fixed_src_x = 100.0f;
+        float fixed_src_y = 200.0f;
+
+        for (int j = 0; j < numPoints; j++)
+        {
+            // All source points are identical
+            srcVec[i * numPoints * 2 + 2 * j]     = fixed_src_x;
+            srcVec[i * numPoints * 2 + 2 * j + 1] = fixed_src_y;
+
+            // Different destination points
+            dstVec[i * numPoints * 2 + 2 * j]     = j * 10.0f;
+            dstVec[i * numPoints * 2 + 2 * j + 1] = j * 15.0f;
+        }
+    }
+
+    ASSERT_EQ(cudaSuccess, cudaMemcpy(srcData->basePtr(), srcVec.data(), sizeof(float) * 2 * numPoints * numSamples,
+                                      cudaMemcpyHostToDevice));
+    ASSERT_EQ(cudaSuccess, cudaMemcpy(dstData->basePtr(), dstVec.data(), sizeof(float) * 2 * numPoints * numSamples,
+                                      cudaMemcpyHostToDevice));
+
+    cudaStream_t stream;
+    ASSERT_EQ(cudaSuccess, cudaStreamCreateWithFlags(&stream, cudaStreamNonBlocking));
+
+    cvcuda::FindHomography fh(numSamples, numPoints);
+    EXPECT_NO_THROW(fh(stream, srcPoints, dstPoints, models));
+    EXPECT_EQ(cudaSuccess, cudaStreamSynchronize(stream));
+    ASSERT_EQ(cudaSuccess, cudaStreamDestroy(stream));
+}
+
+// clang-format off
+NVCV_TEST_SUITE_P(OpFindHomography_Negative, test::ValueList<std::string, nvcv::DataType, std::string, nvcv::DataType, std::string, nvcv::DataType, int, int, int, int, int, int, int>
+    {
+        // layoutSrc, dataTypeSrc, layoutDst, dataTypeDst, layoutModels, dataTypeModels, numSamples, numPoints, numPointsSrc, numPointsDst, numPointsModels, numPointsSrc, numPointsDst
+        // invalid layout
+        {"N", nvcv::TYPE_2F32, "NW", nvcv::TYPE_2F32, "NHW", nvcv::TYPE_F32, 8, 16, 8, 16, 8, 3, 3},
+        {"NW", nvcv::TYPE_2F32, "N", nvcv::TYPE_2F32, "NHW", nvcv::TYPE_F32, 8, 16, 8, 16, 8, 3, 3},
+        // invalid shape
+        {"NW", nvcv::TYPE_2F32, "NW", nvcv::TYPE_2F32, "NHW", nvcv::TYPE_F32, 8, 16, 10, 16, 8, 3, 3},
+        {"NW", nvcv::TYPE_2F32, "NW", nvcv::TYPE_2F32, "NHW", nvcv::TYPE_F32, 8, 16, 8, 12, 8, 3, 3},
+        {"NW", nvcv::TYPE_2F32, "NW", nvcv::TYPE_2F32, "NHW", nvcv::TYPE_F32, 8, 2, 8, 2, 8, 3, 3},
+        {"NW", nvcv::TYPE_2F32, "NW", nvcv::TYPE_2F32, "NHW", nvcv::TYPE_F32, 8, 16, 8, 16, 8, 4, 3},
+        // invalid datta type
+        {"NW", nvcv::TYPE_3F32, "NW", nvcv::TYPE_2F32, "NHW", nvcv::TYPE_F32, 8, 16, 8, 16, 8, 3, 3},
+        {"NW", nvcv::TYPE_2F32, "NW", nvcv::TYPE_3F32, "NHW", nvcv::TYPE_F32, 8, 16, 8, 16, 8, 3, 3},
+
+    });
+
+// clang-format on
+
+TEST(OpFindHomography_Negative, createWillNullHandle)
+{
+    EXPECT_EQ(NVCV_ERROR_INVALID_ARGUMENT, cvcudaFindHomographyCreate(nullptr, 8, 16));
+}
+
+TEST(OpFindHomography_Negative, varshape_different_batch_size)
+{
+    int              numSamplesSrc = 4;
+    int              numSamplesDst = 5;
+    int              numSamples    = std::min(numSamplesSrc, numSamplesDst);
+    std::vector<int> numPoints(numSamples);
+
+    auto              reqsSrc = nvcv::TensorBatch::CalcRequirements(numSamplesSrc);
+    auto              reqsDst = nvcv::TensorBatch::CalcRequirements(numSamplesDst);
+    nvcv::TensorBatch srcTensorBatch(reqsSrc);
+    nvcv::TensorBatch dstTensorBatch(reqsDst);
+    nvcv::TensorBatch modelsTensorBatch(reqsSrc);
+
+    int maxNumPoints = 10;
+    for (int i = 0; i < numSamples; i++)
+    {
+        numPoints[i] = 3;
+        maxNumPoints = std::max(maxNumPoints, numPoints[i]);
+
+        nvcv::Tensor srcPoints(
+            {
+                {1, numPoints[i]},
+                "NW"
+        },
+            nvcv::TYPE_2F32);
+        nvcv::Tensor dstPoints(
+            {
+                {1, numPoints[i]},
+                "NW"
+        },
+            nvcv::TYPE_2F32);
+        nvcv::Tensor models(
+            {
+                {1, 3, 3},
+                "NHW"
+        },
+            nvcv::TYPE_F32);
+        srcTensorBatch.pushBack(srcPoints);
+        dstTensorBatch.pushBack(dstPoints);
+        modelsTensorBatch.pushBack(models);
+    }
+    {
+        nvcv::Tensor dstPoints(
+            {
+                {1, numPoints[0]},
+                "NW"
+        },
+            nvcv::TYPE_2F32);
+        dstTensorBatch.pushBack(dstPoints);
+    }
+
+    cudaStream_t stream;
+    ASSERT_EQ(cudaSuccess, cudaStreamCreateWithFlags(&stream, cudaStreamNonBlocking));
+
+    cvcuda::FindHomography fh(numSamples, maxNumPoints);
+
+    EXPECT_EQ(NVCV_ERROR_INVALID_ARGUMENT,
+              nvcv::ProtectCall([&] { fh(stream, srcTensorBatch, dstTensorBatch, modelsTensorBatch); }));
+
+    EXPECT_EQ(cudaSuccess, cudaStreamSynchronize(stream));
+    ASSERT_EQ(cudaSuccess, cudaStreamDestroy(stream));
+}
+
+TEST_P(OpFindHomography_Negative, invalid_parameters)
+{
+    std::string    layoutSrc        = GetParamValue<0>();
+    nvcv::DataType dataTypeSrc      = GetParamValue<1>();
+    std::string    layoutDst        = GetParamValue<2>();
+    nvcv::DataType dataTypeDst      = GetParamValue<3>();
+    std::string    layoutModels     = GetParamValue<4>();
+    nvcv::DataType dataTypeModels   = GetParamValue<5>();
+    int            numSamplesSrc    = GetParamValue<6>();
+    int            numPointsSrc     = GetParamValue<7>();
+    int            numSamplesDst    = GetParamValue<8>();
+    int            numPointsDst     = GetParamValue<9>();
+    int            numSamplesModels = GetParamValue<10>();
+    int            shapeOneModels   = GetParamValue<11>();
+    int            shapeTwoModels   = GetParamValue<12>();
+
+    // clang-format off
+    // Create tensors
+    nvcv::Tensor srcPoints;
+    if (layoutSrc.length() == 1)
+    {
+        srcPoints = nvcv::Tensor({{numSamplesSrc}, layoutSrc.c_str()}, dataTypeSrc);
+    }
+    else
+    {
+        srcPoints = nvcv::Tensor({{numSamplesSrc, numPointsSrc}, layoutSrc.c_str()}, dataTypeSrc);
+    }
+
+    nvcv::Tensor dstPoints;
+    if (layoutDst.length() == 1)
+    {
+        dstPoints = nvcv::Tensor({{numSamplesDst}, layoutDst.c_str()}, dataTypeDst);
+    }
+    else
+    {
+        dstPoints = nvcv::Tensor({{numSamplesDst, numPointsDst}, layoutDst.c_str()}, dataTypeDst);
+    }
+    nvcv::Tensor models({{numSamplesModels, shapeOneModels, shapeTwoModels}, layoutModels.c_str()}, dataTypeModels);
+
+    // clang-format on
+
+    cudaStream_t stream;
+    ASSERT_EQ(cudaSuccess, cudaStreamCreateWithFlags(&stream, cudaStreamNonBlocking));
+
+    cvcuda::FindHomography fh(std::max(numSamplesSrc, numSamplesDst), std::max(numPointsSrc, numPointsDst));
+
+    EXPECT_EQ(NVCV_ERROR_INVALID_ARGUMENT, nvcv::ProtectCall([&] { fh(stream, srcPoints, dstPoints, models); }));
+
+    EXPECT_EQ(cudaSuccess, cudaStreamSynchronize(stream));
+    ASSERT_EQ(cudaSuccess, cudaStreamDestroy(stream));
 }

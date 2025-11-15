@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2023 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2023-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,10 +15,10 @@
 
 import torch
 import cvcuda
+
 import pytest as t
 import numpy as np
 import cvcuda_util as util
-
 
 params = [
     (((10, 16, 23, 1), np.uint8, "NHWC")),
@@ -79,7 +79,7 @@ def test_op_histogram_mask(input):
     inputT = cvcuda.Tensor(*input)
     arr = np.random.random(input[0])
     arr = (arr * 3).astype(np.uint8)
-    maskT = util.to_nvcv_tensor(arr, input[2])
+    maskT = util.to_cvcuda_tensor(arr, input[2])
 
     assert maskT.shape == inputT.shape
 

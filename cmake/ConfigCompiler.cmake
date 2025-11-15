@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2022-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2022-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -39,21 +39,14 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${C_WARNING_ERROR_FLAG} ${C_WARNING_FLAGS}")
 
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} ${CUDA_WARNING_ERROR_FLAG} ${C_WARNING_FLAGS} ${CXX_WARNING_FLAGS} ${CUDA_WARNING_FLAGS}")
 
-if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 9.4)
-    message(FATAL_ERROR "Must use gcc>=9.4 to compile CV-CUDA, you're using ${CMAKE_CXX_COMPILER_ID}-${CMAKE_CXX_COMPILER_VERSION}")
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 10.0)
+    message(FATAL_ERROR "Must use gcc>=10.0 to compile CV-CUDA, you're using ${CMAKE_CXX_COMPILER_ID}-${CMAKE_CXX_COMPILER_VERSION}")
 endif()
 
 include(CheckIPOSupported)
 check_ipo_supported(RESULT LTO_SUPPORTED)
 
-if(CMAKE_BUILD_TYPE STREQUAL "Release" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo"
-   # Enable if gcc>=10. With 9.4 in some contexts we hit ICE with LTO:
-   # internal compiler error: in add_symbol_to_partition_1, at lto/lto-partition.c:153
-   AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 10.0)
-    set(LTO_ENABLED ON)
-else()
-    set(LTO_ENABLED OFF)
-endif()
+set(LTO_ENABLED ON)
 
 if(ENABLE_SANITIZER)
     set(COMPILER_SANITIZER_FLAGS
@@ -73,7 +66,7 @@ if(ENABLE_SANITIZER)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COMPILER_SANITIZER_FLAGS}")
 endif()
 
-if(BUILD_TESTS)
+if(BUILD_TESTS OR BUILD_TESTS_CPP OR BUILD_TESTS_WHEELS OR BUILD_TESTS_PYTHON)
     # Set up the compilers we'll use to check public API compatibility
 
     # Are they already specified?
@@ -82,7 +75,7 @@ if(BUILD_TESTS)
         set(candidate_compilers ${PUBLIC_API_COMPILERS})
     else()
         # If not, by default, we'll try these.
-        set(candidate_compilers gcc-11 gcc-10 gcc-9 clang-11 clang-14)
+        set(candidate_compilers gcc-11 gcc-10 clang-11 clang-14)
     endif()
 
     unset(valid_compilers)

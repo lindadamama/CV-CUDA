@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2023-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2023-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,7 +30,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 import json
 import pandas
-import nvcv
+import cvcuda
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(
@@ -97,8 +97,8 @@ class AbstractOpBase(ABC):
         Performs various setup activities to set this operator before it can be run.
         :param input: The input tensor to run the operator on.
         """
-        if hasattr(nvcv, "clear_cache"):
-            nvcv.clear_cache()
+        if hasattr(cvcuda, "clear_cache"):
+            cvcuda.clear_cache()
 
     @abstractmethod
     def run(self, input):

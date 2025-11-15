@@ -768,7 +768,7 @@ inline void WriteImagesToPGM(const char *filename, const std::vector<uint8_t> &v
         c1size = nvcv::cuda::GetElement(shape, 0);
     }
 
-    auto stripCoord = [](long4 coord)
+    auto stripCoord = [](long4_16a coord)
     {
         if constexpr (nvcv::cuda::NumElements<ST> == 4)
             return ST{coord};
@@ -805,7 +805,7 @@ inline void WriteImagesToPGM(const char *filename, const std::vector<uint8_t> &v
             {
                 for (long j = 0; j < width; ++j)
                 {
-                    ST coord = stripCoord(long4{c0, c1, i, j});
+                    ST coord = stripCoord(long4_16a{c0, c1, i, j});
 
                     VT val = util::ValueAt<VT>(vec, strides, coord);
 
@@ -839,7 +839,7 @@ inline void WritePyramidToPGM(const char *header, const std::vector<std::vector<
 // Write "fat" pyramid to PGM files, a pyramid is list of octave LNHWC tensors
 template<typename VT>
 inline void WritePyramidToPGM(const char *header, const std::vector<std::vector<uint8_t>> &pyr,
-                              const std::vector<long4> &strides, const std::vector<long4> &shape)
+                              const std::vector<long4_16a> &strides, const std::vector<long4_16a> &shape)
 {
     std::string h = std::string(header) + std::string("_%ld_");
 

@@ -21,6 +21,7 @@
 #include <common/InterpUtils.hpp>
 #include <common/TensorDataUtils.hpp>
 #include <common/TypedTests.hpp>
+#include <common/ValueTests.hpp>
 #include <cvcuda/OpSIFT.hpp>
 #include <cvcuda/cuda_tools/MathOps.hpp>
 #include <cvcuda/cuda_tools/TypeTraits.hpp>
@@ -1011,7 +1012,160 @@ TYPED_TEST(OpSIFT, correct_output)
     EXPECT_EQ(results.testFeatures, results.goldFeatures);
 }
 
+TEST(OpSIFT, no_linear_system_solution)
+{
+    int3 inShape = {64, 64, 1};
+
+    nvcv::Tensor src = nvcv::util::CreateTensor(inShape.z, inShape.x, inShape.y, kInFormat);
+
+    auto srcData = src.exportData<nvcv::TensorDataStridedCuda>();
+    ASSERT_TRUE(srcData);
+
+    std::vector<uint8_t> flatImage(64 * 64, 128);
+    flatImage[32 * 64 + 32] = 130;
+    flatImage[32 * 64 + 31] = 126;
+    flatImage[31 * 64 + 32] = 126;
+
+    ASSERT_EQ(cudaSuccess,
+              cudaMemcpy(srcData->basePtr(), flatImage.data(), 64 * 64 * sizeof(uint8_t), cudaMemcpyHostToDevice));
+
+    nvcv::Tensor featCoords(
+        {
+            {1, 100},
+            "NM"
+    },
+        nvcv::TYPE_4F32);
+    nvcv::Tensor featMetadata(
+        {
+            {1, 100},
+            "NM"
+    },
+        nvcv::TYPE_3F32);
+    nvcv::Tensor featDescriptors(
+        {
+            {1, 100, 128},
+            "NMD"
+    },
+        nvcv::TYPE_U8);
+    nvcv::Tensor numFeatures({{1}, "N"}, nvcv::TYPE_S32);
+
+    cudaStream_t stream;
+    ASSERT_EQ(cudaSuccess, cudaStreamCreate(&stream));
+
+    cvcuda::SIFT op(inShape, 3);
+
+    EXPECT_NO_THROW(op(stream, src, featCoords, featMetadata, featDescriptors, numFeatures, 3, 0.001f, 5.0f, 0.5f,
+                       NVCV_SIFT_USE_ORIGINAL_INPUT));
+
+    ASSERT_EQ(cudaSuccess, cudaStreamSynchronize(stream));
+    ASSERT_EQ(cudaSuccess, cudaStreamDestroy(stream));
+}
+
+// clang-format off
+NVCV_TEST_SUITE_P(OpSIFT_Negative, test::ValueList<nvcv::ImageFormat, int, int, int, float, float, float, int, int, int, nvcv::DataType, int, int, nvcv::DataType, int, int, int, nvcv::DataType, int, nvcv::DataType>{
+    // inFmt            ,inShape     , initSigma, contrastThreshold, edgeThreshold, numOctaveLayers, {featCoords}          , {featMetadata}        , {featDescriptors}        , {numFeatures}
+    // invalid input
+    {  nvcv::FMT_RGB8p , 32, 32, 8   , 0.5f     , 0.01f            , 20.f         , 2              , 8, 55, nvcv::TYPE_4F32, 8, 55, nvcv::TYPE_3F32, 8, 55, 128, nvcv::TYPE_U8, 8, nvcv::TYPE_S32},
+    {  nvcv::FMT_F32   , 32, 32, 8   , 0.5f     , 0.01f            , 20.f         , 2              , 8, 55, nvcv::TYPE_4F32, 8, 55, nvcv::TYPE_3F32, 8, 55, 128, nvcv::TYPE_U8, 8, nvcv::TYPE_S32},
+    {  nvcv::FMT_RGB8  , 32, 32, 8   , 0.5f     , 0.01f            , 20.f         , 2              , 8, 55, nvcv::TYPE_4F32, 8, 55, nvcv::TYPE_3F32, 8, 55, 128, nvcv::TYPE_U8, 8, nvcv::TYPE_S32},
+    {  nvcv::FMT_U8    , 1 , 32, 8   , 0.5f     , 0.01f            , 20.f         , 2              , 8, 55, nvcv::TYPE_4F32, 8, 55, nvcv::TYPE_3F32, 8, 55, 128, nvcv::TYPE_U8, 8, nvcv::TYPE_S32},
+    // invalid parameters
+    {  nvcv::FMT_U8    , 32, 32, 8   , -0.5f    , 0.01f            , 20.f         , 2              , 8, 55, nvcv::TYPE_4F32, 8, 55, nvcv::TYPE_3F32, 8, 55, 128, nvcv::TYPE_U8, 8, nvcv::TYPE_S32},
+    {  nvcv::FMT_U8    , 32, 32, 8   , 0.5f     , -0.01f           , 20.f         , 2              , 8, 55, nvcv::TYPE_4F32, 8, 55, nvcv::TYPE_3F32, 8, 55, 128, nvcv::TYPE_U8, 8, nvcv::TYPE_S32},
+    {  nvcv::FMT_U8    , 32, 32, 8   , 0.5f     , 0.01f            , -20.f        , 2              , 8, 55, nvcv::TYPE_4F32, 8, 55, nvcv::TYPE_3F32, 8, 55, 128, nvcv::TYPE_U8, 8, nvcv::TYPE_S32},
+    {  nvcv::FMT_U8    , 32, 32, 8   , 0.5f     , 0.01f            , 20.f         , 0              , 8, 55, nvcv::TYPE_4F32, 8, 55, nvcv::TYPE_3F32, 8, 55, 128, nvcv::TYPE_U8, 8, nvcv::TYPE_S32},
+    // invalid featCoords
+    {  nvcv::FMT_U8    , 32, 32, 8   , 0.5f     , 0.01f            , 20.f         , 2              , 8, 55, nvcv::TYPE_F32 , 8, 55, nvcv::TYPE_3F32, 8, 55, 128, nvcv::TYPE_U8, 8, nvcv::TYPE_S32},
+    {  nvcv::FMT_U8    , 32, 32, 8   , 0.5f     , 0.01f            , 20.f         , 2              , 7, 55, nvcv::TYPE_4F32, 8, 55, nvcv::TYPE_3F32, 8, 55, 128, nvcv::TYPE_U8, 8, nvcv::TYPE_S32},
+    // invalid featMetadata
+    {  nvcv::FMT_U8    , 32, 32, 8   , 0.5f     , 0.01f            , 20.f         , 2              , 8, 55, nvcv::TYPE_4F32, 8, 55, nvcv::TYPE_F32 , 8, 55, 128, nvcv::TYPE_U8, 8, nvcv::TYPE_S32},
+    {  nvcv::FMT_U8    , 32, 32, 8   , 0.5f     , 0.01f            , 20.f         , 2              , 8, 55, nvcv::TYPE_4F32, 7, 55, nvcv::TYPE_3F32, 7, 55, 128, nvcv::TYPE_U8, 8, nvcv::TYPE_S32},
+    {  nvcv::FMT_U8    , 32, 32, 8   , 0.5f     , 0.01f            , 20.f         , 2              , 8, 55, nvcv::TYPE_4F32, 8, 56, nvcv::TYPE_3F32, 8, 55, 128, nvcv::TYPE_U8, 8, nvcv::TYPE_S32},
+    // invalid featDescriptorsData
+    {  nvcv::FMT_U8    , 32, 32, 8   , 0.5f     , 0.01f            , 20.f         , 2              , 8, 55, nvcv::TYPE_4F32, 8, 55, nvcv::TYPE_3F32, 8, 55, 128, nvcv::TYPE_S8, 8, nvcv::TYPE_S32},
+    {  nvcv::FMT_U8    , 32, 32, 8   , 0.5f     , 0.01f            , 20.f         , 2              , 8, 55, nvcv::TYPE_4F32, 8, 55, nvcv::TYPE_3F32, 8, 55, 127, nvcv::TYPE_U8, 8, nvcv::TYPE_S32},
+    {  nvcv::FMT_U8    , 32, 32, 8   , 0.5f     , 0.01f            , 20.f         , 2              , 8, 55, nvcv::TYPE_4F32, 8, 55, nvcv::TYPE_3F32, 7, 55, 128, nvcv::TYPE_U8, 8, nvcv::TYPE_S32},
+    {  nvcv::FMT_U8    , 32, 32, 8   , 0.5f     , 0.01f            , 20.f         , 2              , 8, 55, nvcv::TYPE_4F32, 8, 55, nvcv::TYPE_3F32, 8, 56, 128, nvcv::TYPE_U8, 8, nvcv::TYPE_S32},
+   // invalid numFeaturesData
+   {  nvcv::FMT_U8    , 32, 32, 8   , 0.5f     , 0.01f            , 20.f         , 2              , 8, 55, nvcv::TYPE_4F32, 8, 55, nvcv::TYPE_3F32, 8, 55, 128, nvcv::TYPE_U8, 8, nvcv::TYPE_F32},
+   {  nvcv::FMT_U8    , 32, 32, 8   , 0.5f     , 0.01f            , 20.f         , 2              , 8, 55, nvcv::TYPE_4F32, 8, 55, nvcv::TYPE_3F32, 8, 55, 128, nvcv::TYPE_U8, 7, nvcv::TYPE_S32}
+});
+
+// clang-format on
+
 TEST(OpSIFT_Negative, create_null_handle)
 {
-    EXPECT_EQ(cvcudaSIFTCreate(nullptr, int3{8, 8, 8}, 2), NVCV_ERROR_INVALID_ARGUMENT);
+    EXPECT_EQ(cvcudaSIFTCreate(nullptr, int3{32, 32, 8}, 2), NVCV_ERROR_INVALID_ARGUMENT);
+}
+
+TEST_P(OpSIFT_Negative, invalid_parameters)
+{
+    nvcv::ImageFormat inFmt = GetParamValue<0>();
+    int3              inShape{GetParamValue<1>(), GetParamValue<2>(), GetParamValue<3>()};
+    float             initSigma         = GetParamValue<4>();
+    float             contrastThreshold = GetParamValue<5>();
+    float             edgeThreshold     = GetParamValue<6>();
+    int               numOctaveLayers   = GetParamValue<7>();
+    int2              featCoordsShape{GetParamValue<8>(), GetParamValue<9>()};
+    nvcv::DataType    featCoordsDataType = GetParamValue<10>();
+    int2              featMetadataShape{GetParamValue<11>(), GetParamValue<12>()};
+    nvcv::DataType    featMetadataDataType = GetParamValue<13>();
+    int3              featDescriptorsShape{GetParamValue<14>(), GetParamValue<15>(), GetParamValue<16>()};
+    nvcv::DataType    featDescriptorsDataType = GetParamValue<17>();
+    int               numFeaturesShape        = GetParamValue<18>();
+    nvcv::DataType    numFeaturesDataType     = GetParamValue<19>();
+
+    NVCVSIFTFlagType flags = NVCV_SIFT_USE_ORIGINAL_INPUT;
+
+    int3 maxShape        = (inShape + 3);
+    int  maxOctaveLayers = numOctaveLayers + 1;
+
+    nvcv::Tensor src = nvcv::util::CreateTensor(inShape.z, inShape.x, inShape.y, inFmt);
+
+    nvcv::Tensor featCoords(
+        {
+            {featCoordsShape.x, featCoordsShape.y},
+            "NM"
+    },
+        featCoordsDataType);
+    nvcv::Tensor featMetadata(
+        {
+            {featMetadataShape.x, featMetadataShape.y},
+            "NM"
+    },
+        featMetadataDataType);
+    nvcv::Tensor featDescriptors(
+        {
+            {featDescriptorsShape.x, featDescriptorsShape.y, featDescriptorsShape.z},
+            "NMD"
+    },
+        featDescriptorsDataType);
+    nvcv::Tensor numFeatures({{numFeaturesShape}, "N"}, numFeaturesDataType);
+
+    cudaStream_t stream;
+    ASSERT_EQ(cudaSuccess, cudaStreamCreate(&stream));
+
+    cvcuda::SIFT op(maxShape, maxOctaveLayers);
+
+    EXPECT_EQ(NVCV_ERROR_INVALID_ARGUMENT, nvcv::ProtectCall(
+                                               [&]
+                                               {
+                                                   op(stream, src, featCoords, featMetadata, featDescriptors,
+                                                      numFeatures, numOctaveLayers, contrastThreshold, edgeThreshold,
+                                                      initSigma, flags);
+                                               }));
+
+    ASSERT_EQ(cudaSuccess, cudaStreamSynchronize(stream));
+    ASSERT_EQ(cudaSuccess, cudaStreamDestroy(stream));
+}
+
+TEST(OpSIFT_Negative, create_invalid_shape)
+{
+    NVCVOperatorHandle handle;
+    EXPECT_EQ(cvcudaSIFTCreate(&handle, int3{1, 8, 8}, 2), NVCV_ERROR_INVALID_ARGUMENT);
+    EXPECT_EQ(cvcudaSIFTCreate(&handle, int3{8, 1, 8}, 2), NVCV_ERROR_INVALID_ARGUMENT);
+    EXPECT_EQ(cvcudaSIFTCreate(&handle, int3{8, 8, 0}, 2), NVCV_ERROR_INVALID_ARGUMENT);
+    EXPECT_EQ(cvcudaSIFTCreate(&handle, int3{8, 8, 65536}, 2), NVCV_ERROR_INVALID_ARGUMENT);
+    EXPECT_EQ(cvcudaSIFTCreate(&handle, int3{8, 8, 8}, 0), NVCV_ERROR_INVALID_ARGUMENT);
+    EXPECT_EQ(cvcudaSIFTCreate(&handle, int3{8, 8, 8}, 17), NVCV_ERROR_INVALID_ARGUMENT);
 }

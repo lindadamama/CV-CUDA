@@ -120,18 +120,26 @@ NVCVImageRequirements Image::CalcRequirements(Size2D size, ImageFormat fmt, int3
     return reqs;
 }
 
-Image::Image(NVCVImageRequirements reqs, IAllocator &alloc)
-    : m_alloc{alloc}
-    , m_reqs{std::move(reqs)}
+void *Image::AllocateBuffer(IAllocator &alloc, const NVCVImageRequirements &reqs)
 {
-    if (ImageFormat{m_reqs.format}.memLayout() != NVCV_MEM_LAYOUT_PL)
+    if (ImageFormat{reqs.format}.memLayout() != NVCV_MEM_LAYOUT_PL)
     {
         throw Exception(NVCV_ERROR_NOT_IMPLEMENTED, "Image with block-linear format is not currently supported.");
     }
 
-    int64_t bufSize = CalcTotalSizeBytes(m_reqs.mem.cudaMem);
-    m_memBuffer     = m_alloc->allocCudaMem(bufSize, m_reqs.alignBytes);
-    NVCV_ASSERT(m_memBuffer != nullptr);
+    int64_t bufSize = CalcTotalSizeBytes(reqs.mem.cudaMem);
+    void   *buffer  = alloc.allocCudaMem(bufSize, reqs.alignBytes);
+    NVCV_ASSERT(buffer != nullptr);
+    return buffer;
+}
+
+Image::Image(NVCVImageRequirements reqs, IAllocator &alloc)
+    : m_alloc{alloc}
+    , m_reqs{std::move(reqs)}
+    // coverity[ctor_dtor_leak] - m_memBuffer is properly freed in destructor via m_alloc->freeCudaMem
+    , m_memBuffer{AllocateBuffer(alloc, m_reqs)}
+{
+    // Validation and allocation now happen in the member initializer list for exception safety
 }
 
 Image::~Image()

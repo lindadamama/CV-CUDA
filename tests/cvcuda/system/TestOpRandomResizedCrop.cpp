@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2022-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2022-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -358,6 +358,13 @@ TEST(OpRandomResizedCrop_negative, createWithNullHandle)
     EXPECT_EQ(NVCV_ERROR_INVALID_ARGUMENT, cvcudaRandomResizedCropCreate(nullptr, 0.2, 1.0, 0.8, 1.3, 2, 0));
 }
 
+TEST(OpRandomResizedCrop, createWithZeroSeed)
+{
+    NVCVOperatorHandle opHandle;
+    EXPECT_EQ(NVCV_SUCCESS, cvcudaRandomResizedCropCreate(&opHandle, 0.2, 1.0, 0.8, 1.3, 2, 0));
+    EXPECT_NO_THROW(nvcvOperatorDestroy(opHandle));
+}
+
 TEST(OpRandomResizedCrop_negative, createWithInvalidScale)
 {
     NVCVOperatorHandle opHandle;
@@ -371,28 +378,48 @@ TEST(OpRandomResizedCrop_negative, createWithInvalidRatio)
 }
 
 // clang-format off
-NVCV_TEST_SUITE_P(OpRandomResizedCrop_negative, nvcv::test::ValueList<std::string, nvcv::DataType, std::string, nvcv::DataType, NVCVInterpolationType, NVCVStatus>
+NVCV_TEST_SUITE_P(OpRandomResizedCrop_negative, nvcv::test::ValueList<std::string, nvcv::DataType, std::string, nvcv::DataType, NVCVInterpolationType, int>
 {
-    //   in_layout,        in_data_type,   out_layout,     out_data_type,         interpolation,         expected_return_status
-    {        "CHW",       nvcv::TYPE_U8,        "HWC",     nvcv::TYPE_U8,   NVCV_INTERP_NEAREST,    NVCV_ERROR_INVALID_ARGUMENT},
-    {        "HWC",       nvcv::TYPE_U8,        "CHW",     nvcv::TYPE_U8,   NVCV_INTERP_NEAREST,    NVCV_ERROR_INVALID_ARGUMENT},
-    {        "HWC",      nvcv::TYPE_F64,        "HWC",     nvcv::TYPE_U8,   NVCV_INTERP_NEAREST,    NVCV_ERROR_INVALID_ARGUMENT},
-    {        "HWC",       nvcv::TYPE_U8,        "HWC",    nvcv::TYPE_F64,   NVCV_INTERP_NEAREST,    NVCV_ERROR_INVALID_ARGUMENT},
-    {        "HWC",      nvcv::TYPE_U32,        "HWC",     nvcv::TYPE_U8,   NVCV_INTERP_NEAREST,    NVCV_ERROR_INVALID_ARGUMENT},
-    {        "HWC",       nvcv::TYPE_U8,        "HWC",    nvcv::TYPE_U32,   NVCV_INTERP_NEAREST,    NVCV_ERROR_INVALID_ARGUMENT},
-    {        "HWC",       nvcv::TYPE_U8,        "HWC",     nvcv::TYPE_U8,      NVCV_INTERP_AREA,    NVCV_ERROR_INVALID_ARGUMENT},
+    //   in_layout,        in_data_type,   out_layout,     out_data_type,         interpolation, channels
+    {        "CHW",       nvcv::TYPE_U8,        "HWC",     nvcv::TYPE_U8,   NVCV_INTERP_NEAREST, 2},
+    {        "HWC",       nvcv::TYPE_U8,        "HWC",     nvcv::TYPE_U8,   NVCV_INTERP_NEAREST, 5},
+    {        "HWC",       nvcv::TYPE_U8,        "CHW",     nvcv::TYPE_U8,   NVCV_INTERP_NEAREST, 2},
+    {        "CHW",       nvcv::TYPE_U8,        "CHW",     nvcv::TYPE_U8,   NVCV_INTERP_NEAREST, 2},
+    {        "HWC",      nvcv::TYPE_F64,        "HWC",     nvcv::TYPE_U8,   NVCV_INTERP_NEAREST, 2},
+    {        "HWC",       nvcv::TYPE_U8,        "HWC",    nvcv::TYPE_F64,   NVCV_INTERP_NEAREST, 2},
+    {        "HWC",      nvcv::TYPE_U32,        "HWC",     nvcv::TYPE_U8,   NVCV_INTERP_NEAREST, 2},
+    {        "HWC",       nvcv::TYPE_U8,        "HWC",    nvcv::TYPE_U32,   NVCV_INTERP_NEAREST, 2},
+    {        "HWC",       nvcv::TYPE_U8,        "HWC",     nvcv::TYPE_U8,      NVCV_INTERP_AREA, 2},
+});
+
+NVCV_TEST_SUITE_P(OpRandomResizedCropVarshape_negative, nvcv::test::ValueList<int, nvcv::ImageFormat, nvcv::ImageFormat, NVCVInterpolationType, nvcv::ImageFormat, nvcv::ImageFormat>
+{
+    // exceed max batch size
+    {10, nvcv::FMT_RGBA8, nvcv::FMT_RGBA8, NVCV_INTERP_NEAREST, nvcv::FMT_RGBA8, nvcv::FMT_RGBA8},
+    // invalid format
+    {2, nvcv::FMT_RGBA8, nvcv::FMT_RGBA8, NVCV_INTERP_NEAREST, nvcv::FMT_RGB8, nvcv::FMT_RGBA8},
+    {10, nvcv::FMT_RGBA8, nvcv::FMT_RGBA8, NVCV_INTERP_NEAREST, nvcv::FMT_RGBA8, nvcv::FMT_RGB8},
+    {2, nvcv::FMT_RGBA8p, nvcv::FMT_RGBA8p, NVCV_INTERP_NEAREST, nvcv::FMT_RGBA8p, nvcv::FMT_RGBA8},
+    {2, nvcv::FMT_RGBA8, nvcv::FMT_RGBA8p, NVCV_INTERP_NEAREST, nvcv::FMT_RGBA8, nvcv::FMT_RGBA8p},
+    {2, nvcv::FMT_RGBA8p, nvcv::FMT_RGBA8p, NVCV_INTERP_NEAREST, nvcv::FMT_RGBA8p, nvcv::FMT_RGBA8p},
+    // invalid data type
+    {2, nvcv::FMT_RGBAf16, nvcv::FMT_RGBA8, NVCV_INTERP_NEAREST, nvcv::FMT_RGBAf16, nvcv::FMT_RGBA8},
+    {2, nvcv::FMT_RGBA8, nvcv::FMT_RGBAf16, NVCV_INTERP_NEAREST, nvcv::FMT_RGBA8, nvcv::FMT_RGBAf16},
+    // invalid interpolation
+    {2, nvcv::FMT_RGBA8, nvcv::FMT_RGBA8, NVCV_INTERP_HAMMING, nvcv::FMT_RGBA8, nvcv::FMT_RGBA8},
+
 });
 
 // clang-format on
 
 TEST_P(OpRandomResizedCrop_negative, infer_negative_parameter)
 {
-    std::string           in_layout              = GetParamValue<0>();
-    nvcv::DataType        in_data_type           = GetParamValue<1>();
-    std::string           out_layout             = GetParamValue<2>();
-    nvcv::DataType        out_data_type          = GetParamValue<3>();
-    NVCVInterpolationType interpolation          = GetParamValue<4>();
-    NVCVStatus            expected_return_status = GetParamValue<5>();
+    std::string           in_layout     = GetParamValue<0>();
+    nvcv::DataType        in_data_type  = GetParamValue<1>();
+    std::string           out_layout    = GetParamValue<2>();
+    nvcv::DataType        out_data_type = GetParamValue<3>();
+    NVCVInterpolationType interpolation = GetParamValue<4>();
+    int                   channels      = GetParamValue<5>();
 
     double minScale = 0.08;
     double maxScale = 1.0;
@@ -401,13 +428,13 @@ TEST_P(OpRandomResizedCrop_negative, infer_negative_parameter)
 
     nvcv::Tensor imgSrc(
         {
-            {24, 24, 2},
+            {24, 24, channels},
             in_layout.c_str()
     },
         in_data_type);
     nvcv::Tensor imgDst(
         {
-            {24, 24, 2},
+            {24, 24, channels},
             out_layout.c_str()
     },
         out_data_type);
@@ -417,6 +444,64 @@ TEST_P(OpRandomResizedCrop_negative, infer_negative_parameter)
     uint32_t seed           = 1;
 
     cvcuda::RandomResizedCrop randomResizedCropOp(minScale, maxScale, minRatio, maxRatio, numberOfImages, seed);
-    EXPECT_EQ(expected_return_status,
+    EXPECT_EQ(NVCV_ERROR_INVALID_ARGUMENT,
               nvcv::ProtectCall([&] { randomResizedCropOp(NULL, imgSrc, imgDst, interpolation); }));
 }
+
+TEST_P(OpRandomResizedCropVarshape_negative, infer_negative_parameter)
+{
+    cudaStream_t stream;
+    EXPECT_EQ(cudaSuccess, cudaStreamCreate(&stream));
+
+    int                   numberOfImages = GetParamValue<0>();
+    nvcv::ImageFormat     fmtIn          = GetParamValue<1>();
+    nvcv::ImageFormat     fmtOut         = GetParamValue<2>();
+    NVCVInterpolationType interpolation  = GetParamValue<3>();
+    nvcv::ImageFormat     fmtInExtra     = GetParamValue<4>();
+    nvcv::ImageFormat     fmtOutExtra    = GetParamValue<5>();
+
+    const int srcWidthBase      = 24;
+    const int srcHeightBase     = 24;
+    const int dstWidthBase      = 24;
+    const int dstHeightBase     = 24;
+    const int maxNumberOfImages = 6;
+
+    double minScale = 0.08;
+    double maxScale = 1.0;
+    double minRatio = 3.0 / 4.0;
+    double maxRatio = 4.0 / 3.0;
+
+    // Create input and output
+    std::default_random_engine         randEng;
+    std::uniform_int_distribution<int> rndSrcWidth(srcWidthBase * 0.8, srcWidthBase * 1.1);
+    std::uniform_int_distribution<int> rndSrcHeight(srcHeightBase * 0.8, srcHeightBase * 1.1);
+
+    std::uniform_int_distribution<int> rndDstWidth(dstWidthBase * 0.8, dstWidthBase * 1.1);
+    std::uniform_int_distribution<int> rndDstHeight(dstHeightBase * 0.8, dstHeightBase * 1.1);
+
+    std::vector<nvcv::Image> imgSrc, imgDst;
+    for (int i = 0; i < numberOfImages - 1; ++i)
+    {
+        imgSrc.emplace_back(nvcv::Size2D{rndSrcWidth(randEng), rndSrcHeight(randEng)}, fmtIn);
+        imgDst.emplace_back(nvcv::Size2D{rndDstWidth(randEng), rndDstHeight(randEng)}, fmtOut);
+    }
+
+    imgSrc.emplace_back(nvcv::Size2D{rndSrcWidth(randEng), rndSrcHeight(randEng)}, fmtInExtra);
+    imgDst.emplace_back(nvcv::Size2D{rndDstWidth(randEng), rndDstHeight(randEng)}, fmtOutExtra);
+
+    nvcv::ImageBatchVarShape batchSrc(numberOfImages);
+    batchSrc.pushBack(imgSrc.begin(), imgSrc.end());
+
+    nvcv::ImageBatchVarShape batchDst(numberOfImages);
+    batchDst.pushBack(imgDst.begin(), imgDst.end());
+
+    uint32_t                  seed = 1;
+    cvcuda::RandomResizedCrop randomResizedCropOp(minScale, maxScale, minRatio, maxRatio, maxNumberOfImages, seed);
+    EXPECT_EQ(NVCV_ERROR_INVALID_ARGUMENT,
+              nvcv::ProtectCall([&] { randomResizedCropOp(stream, batchSrc, batchDst, interpolation); }));
+
+    EXPECT_EQ(cudaSuccess, cudaStreamSynchronize(stream));
+    EXPECT_EQ(cudaSuccess, cudaStreamDestroy(stream));
+}
+
+// unique format test

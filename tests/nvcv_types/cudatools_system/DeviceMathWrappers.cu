@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2022-2023 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2022-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,6 +17,7 @@
 
 #include "DeviceMathWrappers.hpp" // to test in the device
 
+#include <cvcuda/cuda_tools/Compat.hpp>
 #include <gtest/gtest.h> // for EXPECT_EQ, etc.
 
 // Need to instantiate each test on TestMathWrappers, making sure not to use const types
@@ -70,7 +71,7 @@ NVCV_TEST_INST_ROUND_SAME(cuda::RoundMode::NEAREST, double);
 NVCV_TEST_INST_ROUND_SAME(cuda::RoundMode::UP, char1);
 NVCV_TEST_INST_ROUND_SAME(cuda::RoundMode::DOWN, uint2);
 NVCV_TEST_INST_ROUND_SAME(cuda::RoundMode::DEFAULT, float3);
-NVCV_TEST_INST_ROUND_SAME(cuda::RoundMode::NEAREST, double4);
+NVCV_TEST_INST_ROUND_SAME(cuda::RoundMode::NEAREST, double4_16a);
 
 NVCV_TEST_INST_ROUND_SAME(cuda::RoundMode::UP, float2);
 NVCV_TEST_INST_ROUND_SAME(cuda::RoundMode::DOWN, double2);
@@ -85,7 +86,7 @@ NVCV_TEST_INST_ROUND_SAME(cuda::RoundMode::NEAREST, float4);
 NVCV_TEST_INST_ROUND_DIFF(cuda::RoundMode::UP, float, int);
 NVCV_TEST_INST_ROUND_DIFF(cuda::RoundMode::DOWN, double, unsigned int);
 NVCV_TEST_INST_ROUND_DIFF(cuda::RoundMode::NEAREST, float3, int3);
-NVCV_TEST_INST_ROUND_DIFF(cuda::RoundMode::DEFAULT, double4, long4);
+NVCV_TEST_INST_ROUND_DIFF(cuda::RoundMode::DEFAULT, double4_16a, long4_16a);
 
 NVCV_TEST_INST_ROUND_DIFF(cuda::RoundMode::UP, signed char, signed char);
 NVCV_TEST_INST_ROUND_DIFF(cuda::RoundMode::DEFAULT, float2, float2);
@@ -134,7 +135,7 @@ NVCV_TEST_INST_MIN(double);
 NVCV_TEST_INST_MIN(char1);
 NVCV_TEST_INST_MIN(uint2);
 NVCV_TEST_INST_MIN(float3);
-NVCV_TEST_INST_MIN(double4);
+NVCV_TEST_INST_MIN(double4_16a);
 
 NVCV_TEST_INST_MIN(short2);
 NVCV_TEST_INST_MIN(char4);
@@ -179,7 +180,7 @@ NVCV_TEST_INST_MAX(double);
 NVCV_TEST_INST_MAX(char1);
 NVCV_TEST_INST_MAX(uint2);
 NVCV_TEST_INST_MAX(float3);
-NVCV_TEST_INST_MAX(double4);
+NVCV_TEST_INST_MAX(double4_16a);
 
 NVCV_TEST_INST_MAX(short2);
 NVCV_TEST_INST_MAX(char4);
@@ -224,7 +225,7 @@ NVCV_TEST_INST_POW(double, unsigned char);
 NVCV_TEST_INST_POW(char1, char1);
 NVCV_TEST_INST_POW(uint2, uint2);
 NVCV_TEST_INST_POW(float3, int);
-NVCV_TEST_INST_POW(double4, float4);
+NVCV_TEST_INST_POW(double4_16a, float4);
 
 #undef NVCV_TEST_INST_POW
 
@@ -264,7 +265,7 @@ NVCV_TEST_INST_EXP(double);
 NVCV_TEST_INST_EXP(char1);
 NVCV_TEST_INST_EXP(uint2);
 NVCV_TEST_INST_EXP(float3);
-NVCV_TEST_INST_EXP(double4);
+NVCV_TEST_INST_EXP(double4_16a);
 
 #undef NVCV_TEST_INST_EXP
 
@@ -304,7 +305,7 @@ NVCV_TEST_INST_SQRT(double);
 NVCV_TEST_INST_SQRT(char1);
 NVCV_TEST_INST_SQRT(uint2);
 NVCV_TEST_INST_SQRT(float3);
-NVCV_TEST_INST_SQRT(double4);
+NVCV_TEST_INST_SQRT(double4_16a);
 
 #undef NVCV_TEST_INST_SQRT
 
@@ -344,7 +345,7 @@ NVCV_TEST_INST_ABS(double);
 NVCV_TEST_INST_ABS(char1);
 NVCV_TEST_INST_ABS(uint2);
 NVCV_TEST_INST_ABS(float3);
-NVCV_TEST_INST_ABS(double4);
+NVCV_TEST_INST_ABS(double4_16a);
 
 NVCV_TEST_INST_ABS(short2);
 NVCV_TEST_INST_ABS(char4);
@@ -387,6 +388,6 @@ NVCV_TEST_INST_CLAMP(double, double);
 NVCV_TEST_INST_CLAMP(char1, char1);
 NVCV_TEST_INST_CLAMP(uint2, uint2);
 NVCV_TEST_INST_CLAMP(float3, short);
-NVCV_TEST_INST_CLAMP(double4, int4);
+NVCV_TEST_INST_CLAMP(double4_16a, int4);
 
 #undef NVCV_TEST_INST_CLAMP

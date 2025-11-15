@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2022-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2022-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,90 +15,91 @@
 
 import torch
 import cvcuda
+
 import pytest as t
 
 
 def test_multiple_streams():
-    stream1 = cvcuda.cuda.Stream()  # create a new stream
-    stream2 = cvcuda.cuda.Stream()  # create a new stream
-    stream3 = cvcuda.cuda.Stream()  # create a new stream
+    stream1 = cvcuda.Stream()  # create a new stream
+    stream2 = cvcuda.Stream()  # create a new stream
+    stream3 = cvcuda.Stream()  # create a new stream
     assert stream1 is not stream2
     assert stream1 is not stream3
-    assert cvcuda.cuda.Stream.current is cvcuda.cuda.Stream.default
-    assert cvcuda.cuda.Stream.current is not stream1
-    assert cvcuda.cuda.Stream.current is not stream2
-    assert cvcuda.cuda.Stream.current is not stream3
+    assert cvcuda.Stream.current is cvcuda.Stream.default
+    assert cvcuda.Stream.current is not stream1
+    assert cvcuda.Stream.current is not stream2
+    assert cvcuda.Stream.current is not stream3
 
 
 def test_stream_context():
-    stream1 = cvcuda.cuda.Stream()  # create a new stream
-    stream2 = cvcuda.cuda.Stream()  # create a new stream
+    stream1 = cvcuda.Stream()  # create a new stream
+    stream2 = cvcuda.Stream()  # create a new stream
     with stream1:
-        assert cvcuda.cuda.Stream.current is stream1
+        assert cvcuda.Stream.current is stream1
     with stream2:
-        assert cvcuda.cuda.Stream.current is stream2
-    assert cvcuda.cuda.Stream.current is cvcuda.cuda.Stream.default
+        assert cvcuda.Stream.current is stream2
+    assert cvcuda.Stream.current is cvcuda.Stream.default
 
 
 def test_stream_context_nested():
-    stream1 = cvcuda.cuda.Stream()  # create a new stream
-    stream2 = cvcuda.cuda.Stream()  # create a new stream
+    stream1 = cvcuda.Stream()  # create a new stream
+    stream2 = cvcuda.Stream()  # create a new stream
     with stream1:
-        assert cvcuda.cuda.Stream.current is stream1
+        assert cvcuda.Stream.current is stream1
         with stream2:
-            assert cvcuda.cuda.Stream.current is stream2
-        assert cvcuda.cuda.Stream.current is stream1
-    assert cvcuda.cuda.Stream.current is cvcuda.cuda.Stream.default
+            assert cvcuda.Stream.current is stream2
+        assert cvcuda.Stream.current is stream1
+    assert cvcuda.Stream.current is cvcuda.Stream.default
     with stream2:
-        assert cvcuda.cuda.Stream.current is stream2
-    assert cvcuda.cuda.Stream.current is cvcuda.cuda.Stream.default
+        assert cvcuda.Stream.current is stream2
+    assert cvcuda.Stream.current is cvcuda.Stream.default
 
 
 def test_stream_context_exception():
-    stream1 = cvcuda.cuda.Stream()  # create a new stream
-    stream2 = cvcuda.cuda.Stream()  # create a new stream
+    stream1 = cvcuda.Stream()  # create a new stream
+    stream2 = cvcuda.Stream()  # create a new stream
     with t.raises(Exception):
         with stream1:
-            assert cvcuda.cuda.Stream.current is stream1
+            assert cvcuda.Stream.current is stream1
             with stream2:
-                assert cvcuda.cuda.Stream.current is stream2
+                assert cvcuda.Stream.current is stream2
                 raise Exception()
-            assert cvcuda.cuda.Stream.current is stream1
-        assert cvcuda.cuda.Stream.current is cvcuda.cuda.Stream.default
+            assert cvcuda.Stream.current is stream1
+        assert cvcuda.Stream.current is cvcuda.Stream.default
     with stream2:
-        assert cvcuda.cuda.Stream.current is stream2
-    assert cvcuda.cuda.Stream.current is cvcuda.cuda.Stream.default
+        assert cvcuda.Stream.current is stream2
+    assert cvcuda.Stream.current is cvcuda.Stream.default
 
 
 def test_operator_stream():
-    stream1 = cvcuda.cuda.Stream()  # create a new stream
-    stream2 = cvcuda.cuda.Stream()  # create a new stream
-    stream3 = cvcuda.cuda.Stream()  # create a new stream
+    stream1 = cvcuda.Stream()  # create a new stream
+    stream2 = cvcuda.Stream()  # create a new stream
+    stream3 = cvcuda.Stream()  # create a new stream
     assert stream1 is not stream2
     assert stream1 is not stream3
-    assert cvcuda.cuda.Stream.current is cvcuda.cuda.Stream.default
-    assert cvcuda.cuda.Stream.current is not stream1
-    assert cvcuda.cuda.Stream.current is not stream2
-    assert cvcuda.cuda.Stream.current is not stream3
+    assert cvcuda.Stream.current is cvcuda.Stream.default
+    assert cvcuda.Stream.current is not stream1
+    assert cvcuda.Stream.current is not stream2
+    assert cvcuda.Stream.current is not stream3
     with stream1:
-        assert cvcuda.cuda.Stream.current is stream1
+        assert cvcuda.Stream.current is stream1
         img = torch.zeros(10, 10, 3, dtype=torch.uint8, device="cuda")
         img = cvcuda.as_tensor(img, "HWC")
         cvcuda.cvtcolor(img, cvcuda.ColorConversion.BGR2GRAY)
-        assert cvcuda.cuda.Stream.current is stream1
+        assert cvcuda.Stream.current is stream1
     with stream2:
-        assert cvcuda.cuda.Stream.current is stream2
+        assert cvcuda.Stream.current is stream2
         img = torch.zeros(10, 10, 3, dtype=torch.uint8, device="cuda")
         img = cvcuda.as_tensor(img, "HWC")
         cvcuda.cvtcolor(img, cvcuda.ColorConversion.BGR2GRAY)
-        assert cvcuda.cuda.Stream.current is stream2
+        assert cvcuda.Stream.current is stream2
     with stream3:
-        assert cvcuda.cuda.Stream.current is stream3
+        assert cvcuda.Stream.current is stream3
         img = torch.zeros(10, 10, 3, dtype=torch.uint8, device="cuda")
         img = cvcuda.as_tensor(img, "HWC")
         cvcuda.cvtcolor(img, cvcuda.ColorConversion.BGR2GRAY)
-        assert cvcuda.cuda.Stream.current is stream3
-    assert cvcuda.cuda.Stream.current is cvcuda.cuda.Stream.default
+        assert cvcuda.Stream.current is stream3
+    assert cvcuda.Stream.current is cvcuda.Stream.default
 
 
 def test_operator_changing_stream():
@@ -108,7 +109,7 @@ def test_operator_changing_stream():
     W = 1080
     C = 3
     Loop = 50
-    streams = [cvcuda.cuda.Stream() for _ in range(4)]  # create a list of streams
+    streams = [cvcuda.Stream() for _ in range(4)]  # create a list of streams
 
     inputTensor = torch.randint(0, 256, (N, H, W, C), dtype=torch.uint8).cuda()
     outputTensor = torch.randint(0, 256, (N, H, W, C), dtype=torch.uint8).cuda()
@@ -134,8 +135,8 @@ def test_operator_changing_stream_loaded():
     W = 1080
     C = 3
     Loop = 50
-    stream1 = cvcuda.cuda.Stream()
-    stream2 = cvcuda.cuda.Stream()
+    stream1 = cvcuda.Stream()
+    stream2 = cvcuda.Stream()
 
     inputTensor = torch.randint(0, 256, (N, H, W, C), dtype=torch.uint8).cuda()
     inputTensorTmp = torch.randint(0, 256, (N, H, W, C), dtype=torch.uint8).cuda()

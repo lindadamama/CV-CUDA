@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2022-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2022-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -77,15 +77,27 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release")
     file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/python3)
     file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/python3/lib)
     file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/python3/cvcuda)
-    file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/python3/cvcuda/_bindings)
-    file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/python3/nvcv)
-    file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/python3/nvcv/_bindings)
 
+    # Configure Python packaging files
     configure_file("${CMAKE_CURRENT_SOURCE_DIR}/python/setup.py.in" "${CMAKE_BINARY_DIR}/python3/setup.py")
+    configure_file("${CMAKE_CURRENT_SOURCE_DIR}/python/pyproject.toml.in" "${CMAKE_BINARY_DIR}/python3/pyproject.toml")
+    configure_file("${CMAKE_CURRENT_SOURCE_DIR}/python/README.md.in" "${CMAKE_BINARY_DIR}/python3/README.md")
+    configure_file("${CMAKE_CURRENT_SOURCE_DIR}/python/MANIFEST.in" "${CMAKE_BINARY_DIR}/python3/MANIFEST.in")
+
+    # Configure __init__.py for each package with the appropriate module name
+
+    # cvcuda: all types and operators in single module
+    set(PACKAGE_NAME "cvcuda")
+    set(EXTRA_IMPORTS "
+# Explicitly export C API capsule (not included in 'import *' since it starts with _)
+from ._cvcuda import _C_API  # noqa: F401")
     configure_file("${CMAKE_CURRENT_SOURCE_DIR}/python/__init__.py.in" "${CMAKE_BINARY_DIR}/python3/cvcuda/__init__.py")
-    configure_file("${CMAKE_CURRENT_SOURCE_DIR}/python/__init__.py.in" "${CMAKE_BINARY_DIR}/python3/nvcv/__init__.py")
-    configure_file("${CMAKE_CURRENT_SOURCE_DIR}/python/_load_binding.py.in" "${CMAKE_BINARY_DIR}/python3/cvcuda/_load_binding.py")
-    configure_file("${CMAKE_CURRENT_SOURCE_DIR}/python/_load_binding.py.in" "${CMAKE_BINARY_DIR}/python3/nvcv/_load_binding.py")
+
+    # Install __init__.py files for package structure in Debian packages
+    # Install in lib component since they're shared across all Python versions
+    install(FILES "${CMAKE_BINARY_DIR}/python3/cvcuda/__init__.py"
+            DESTINATION ${CMAKE_INSTALL_LIBDIR}/python/cvcuda
+            COMPONENT lib)
 
     add_custom_target(wheel ALL)
 
@@ -97,8 +109,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release")
         TARGET wheel
         COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:cvcuda> ${CMAKE_BINARY_DIR}/python3/lib
         COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:nvcv_types> ${CMAKE_BINARY_DIR}/python3/lib
-        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/lib/python/cvcuda*.so ${CMAKE_BINARY_DIR}/python3/cvcuda/_bindings
-        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/lib/python/nvcv*.so ${CMAKE_BINARY_DIR}/python3/nvcv/_bindings
+        COMMAND sh -c "cp ${CMAKE_BINARY_DIR}/lib/python/_cvcuda*.so ${CMAKE_BINARY_DIR}/python3/cvcuda/"
     )
 
     add_custom_command(

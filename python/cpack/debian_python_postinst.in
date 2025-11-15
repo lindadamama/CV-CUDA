@@ -1,6 +1,6 @@
 #!/bin/sh -e
 
-# SPDX-FileCopyrightText: Copyright (c) 2022 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2022-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,6 +24,9 @@ case "$1" in
         for mod in @PYTHON_MODULE_FILENAME_LIST@; do
             src="$src_path/$mod"
             dst="$dst_path/$mod"
+            # Create parent directory for the symlink if it contains subdirectories
+            dst_dir=$(dirname "$dst")
+            mkdir -p "$dst_dir"
             ln -sf "$src" "$dst"
         done
         ;;

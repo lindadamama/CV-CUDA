@@ -1,4 +1,4 @@
-/* Copyright (c) 2021-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+/* Copyright (c) 2021-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  *
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
  * SPDX-License-Identifier: Apache-2.0
@@ -96,6 +96,12 @@ ErrorCode CompositeVarShape::infer(const ImageBatchVarShapeDataStridedCuda &fore
                                    const ImageBatchVarShapeDataStridedCuda &fgMask,
                                    const ImageBatchVarShapeDataStridedCuda &outData, cudaStream_t stream)
 {
+    if (!(foreground.uniqueFormat() && background.uniqueFormat() && fgMask.uniqueFormat() && outData.uniqueFormat()))
+    {
+        LOG_ERROR("Images in the input batch must all have the same format");
+        return ErrorCode::INVALID_DATA_FORMAT;
+    }
+
     DataFormat background_format = helpers::GetLegacyDataFormat(background);
     DataFormat foreground_format = helpers::GetLegacyDataFormat(foreground);
     DataFormat fgMask_format     = helpers::GetLegacyDataFormat(fgMask);
@@ -107,12 +113,6 @@ ErrorCode CompositeVarShape::infer(const ImageBatchVarShapeDataStridedCuda &fore
         LOG_ERROR("Invalid DataFormat between foreground ("
                   << foreground_format << "), background (" << background_format << "), foreground mask ("
                   << fgMask_format << ") and output (" << output_format << ")");
-        return ErrorCode::INVALID_DATA_FORMAT;
-    }
-
-    if (!(foreground.uniqueFormat() && background.uniqueFormat() && fgMask.uniqueFormat() && outData.uniqueFormat()))
-    {
-        LOG_ERROR("Images in the input batch must all have the same format");
         return ErrorCode::INVALID_DATA_FORMAT;
     }
 

@@ -525,3 +525,14 @@ TEST(OpAdaptiveThresholdVarshape_Negative, varshape_hasDifferentFormat)
         ASSERT_EQ(cudaSuccess, cudaStreamDestroy(stream));
     }
 }
+
+TEST(OpAdaptiveThresholdVarshape_Negative, create_with_null_handle)
+{
+    EXPECT_EQ(NVCV_ERROR_INVALID_ARGUMENT, cvcudaAdaptiveThresholdCreate(nullptr, 10, 10));
+}
+
+TEST(OpAdaptiveThresholdVarshape_Negative, create_with_negative_max_block_size)
+{
+    NVCVOperatorHandle opHandle;
+    EXPECT_EQ(NVCV_ERROR_INVALID_ARGUMENT, cvcudaAdaptiveThresholdCreate(&opHandle, -1, 10));
+}

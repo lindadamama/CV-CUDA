@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2022-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2022-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,6 +21,9 @@
 // Internal implementation of meta-programming functionalities.
 // Not to be used directly.
 
+#include "../Compat.hpp" // for double4_16a, etc.
+
+#include <cuda.h>         // for CUDA_VERSION
 #include <cuda_runtime.h> // for uchar1, etc.
 
 #include <cfloat>      // for FLT_MIN, etc.
@@ -81,10 +84,13 @@ NVCV_CUDA_TYPE_TRAITS(unsigned long long, unsigned long long, 0, 1, 0, ULLONG_MA
 NVCV_CUDA_TYPE_TRAITS(float, float, 0, 1, FLT_MIN, FLT_MAX);
 NVCV_CUDA_TYPE_TRAITS(double, double, 0, 1, DBL_MIN, DBL_MAX);
 
-#define NVCV_CUDA_TYPE_TRAITS_1_TO_4(COMPOUND_TYPE, BASE_TYPE, MIN_VAL, MAX_VAL) \
+#define NVCV_CUDA_TYPE_TRAITS_1_TO_3(COMPOUND_TYPE, BASE_TYPE, MIN_VAL, MAX_VAL) \
     NVCV_CUDA_TYPE_TRAITS(COMPOUND_TYPE##1, BASE_TYPE, 1, 1, MIN_VAL, MAX_VAL);  \
     NVCV_CUDA_TYPE_TRAITS(COMPOUND_TYPE##2, BASE_TYPE, 2, 2, MIN_VAL, MAX_VAL);  \
-    NVCV_CUDA_TYPE_TRAITS(COMPOUND_TYPE##3, BASE_TYPE, 3, 3, MIN_VAL, MAX_VAL);  \
+    NVCV_CUDA_TYPE_TRAITS(COMPOUND_TYPE##3, BASE_TYPE, 3, 3, MIN_VAL, MAX_VAL);
+
+#define NVCV_CUDA_TYPE_TRAITS_1_TO_4(COMPOUND_TYPE, BASE_TYPE, MIN_VAL, MAX_VAL) \
+    NVCV_CUDA_TYPE_TRAITS_1_TO_3(COMPOUND_TYPE, BASE_TYPE, MIN_VAL, MAX_VAL);    \
     NVCV_CUDA_TYPE_TRAITS(COMPOUND_TYPE##4, BASE_TYPE, 4, 4, MIN_VAL, MAX_VAL)
 
 NVCV_CUDA_TYPE_TRAITS_1_TO_4(char, signed char, SCHAR_MIN, SCHAR_MAX);
@@ -93,12 +99,22 @@ NVCV_CUDA_TYPE_TRAITS_1_TO_4(short, short, SHRT_MIN, SHRT_MAX);
 NVCV_CUDA_TYPE_TRAITS_1_TO_4(ushort, unsigned short, 0, USHRT_MAX);
 NVCV_CUDA_TYPE_TRAITS_1_TO_4(int, int, INT_MIN, INT_MAX);
 NVCV_CUDA_TYPE_TRAITS_1_TO_4(uint, unsigned int, 0, UINT_MAX);
-NVCV_CUDA_TYPE_TRAITS_1_TO_4(long, long, LONG_MIN, LONG_MAX);
-NVCV_CUDA_TYPE_TRAITS_1_TO_4(ulong, unsigned long, 0, ULONG_MAX);
-NVCV_CUDA_TYPE_TRAITS_1_TO_4(longlong, long long, LLONG_MIN, LLONG_MAX);
-NVCV_CUDA_TYPE_TRAITS_1_TO_4(ulonglong, unsigned long long, 0, ULLONG_MAX);
+
+NVCV_CUDA_TYPE_TRAITS_1_TO_3(long, long, LONG_MIN, LONG_MAX);
+NVCV_CUDA_TYPE_TRAITS(long4_16a, long, 4, 4, LONG_MIN, LONG_MAX);
+NVCV_CUDA_TYPE_TRAITS_1_TO_3(ulong, unsigned long, 0, ULONG_MAX);
+NVCV_CUDA_TYPE_TRAITS(ulong4_16a, unsigned long, 4, 4, 0, ULONG_MAX);
+
+NVCV_CUDA_TYPE_TRAITS_1_TO_3(longlong, long long, LLONG_MIN, LLONG_MAX);
+NVCV_CUDA_TYPE_TRAITS(longlong4_16a, long long, 4, 4, LLONG_MIN, LLONG_MAX);
+
+NVCV_CUDA_TYPE_TRAITS_1_TO_3(ulonglong, unsigned long long, 0, ULLONG_MAX);
+NVCV_CUDA_TYPE_TRAITS(ulonglong4_16a, unsigned long long, 4, 4, 0, ULLONG_MAX);
+
 NVCV_CUDA_TYPE_TRAITS_1_TO_4(float, float, FLT_MIN, FLT_MAX);
-NVCV_CUDA_TYPE_TRAITS_1_TO_4(double, double, DBL_MIN, DBL_MAX);
+
+NVCV_CUDA_TYPE_TRAITS_1_TO_3(double, double, DBL_MIN, DBL_MAX);
+NVCV_CUDA_TYPE_TRAITS(double4_16a, double, 4, 4, DBL_MIN, DBL_MAX);
 
 #undef NVCV_CUDA_TYPE_TRAITS_1_TO_4
 #undef NVCV_CUDA_TYPE_TRAITS
@@ -129,11 +145,14 @@ struct MakeType;
         using type = COMPOUND_TYPE;                               \
     }
 
-#define NVCV_CUDA_MAKE_TYPE_0_TO_4(BASE_TYPE, COMPOUND_TYPE) \
+#define NVCV_CUDA_MAKE_TYPE_0_TO_3(BASE_TYPE, COMPOUND_TYPE) \
     NVCV_CUDA_MAKE_TYPE(BASE_TYPE, 0, BASE_TYPE);            \
     NVCV_CUDA_MAKE_TYPE(BASE_TYPE, 1, COMPOUND_TYPE##1);     \
     NVCV_CUDA_MAKE_TYPE(BASE_TYPE, 2, COMPOUND_TYPE##2);     \
-    NVCV_CUDA_MAKE_TYPE(BASE_TYPE, 3, COMPOUND_TYPE##3);     \
+    NVCV_CUDA_MAKE_TYPE(BASE_TYPE, 3, COMPOUND_TYPE##3);
+
+#define NVCV_CUDA_MAKE_TYPE_0_TO_4(BASE_TYPE, COMPOUND_TYPE) \
+    NVCV_CUDA_MAKE_TYPE_0_TO_3(BASE_TYPE, COMPOUND_TYPE);    \
     NVCV_CUDA_MAKE_TYPE(BASE_TYPE, 4, COMPOUND_TYPE##4)
 
 #if CHAR_MIN == 0
@@ -147,12 +166,23 @@ NVCV_CUDA_MAKE_TYPE_0_TO_4(unsigned short, ushort);
 NVCV_CUDA_MAKE_TYPE_0_TO_4(short, short);
 NVCV_CUDA_MAKE_TYPE_0_TO_4(unsigned int, uint);
 NVCV_CUDA_MAKE_TYPE_0_TO_4(int, int);
-NVCV_CUDA_MAKE_TYPE_0_TO_4(unsigned long, ulong);
-NVCV_CUDA_MAKE_TYPE_0_TO_4(long, long);
-NVCV_CUDA_MAKE_TYPE_0_TO_4(unsigned long long, ulonglong);
-NVCV_CUDA_MAKE_TYPE_0_TO_4(long long, longlong);
+
+NVCV_CUDA_MAKE_TYPE_0_TO_3(unsigned long, ulong);
+NVCV_CUDA_MAKE_TYPE(unsigned long, 4, ulong4_16a);
+
+NVCV_CUDA_MAKE_TYPE_0_TO_3(long, long);
+NVCV_CUDA_MAKE_TYPE(long, 4, long4_16a);
+
+NVCV_CUDA_MAKE_TYPE_0_TO_3(unsigned long long, ulonglong);
+NVCV_CUDA_MAKE_TYPE(unsigned long long, 4, ulonglong4_16a);
+
+NVCV_CUDA_MAKE_TYPE_0_TO_3(long long, longlong);
+NVCV_CUDA_MAKE_TYPE(long long, 4, longlong4_16a);
+
 NVCV_CUDA_MAKE_TYPE_0_TO_4(float, float);
-NVCV_CUDA_MAKE_TYPE_0_TO_4(double, double);
+
+NVCV_CUDA_MAKE_TYPE_0_TO_3(double, double);
+NVCV_CUDA_MAKE_TYPE(double, 4, double4_16a);
 
 #undef NVCV_CUDA_MAKE_TYPE_0_TO_4
 #undef NVCV_CUDA_MAKE_TYPE

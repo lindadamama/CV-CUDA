@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2023-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2023-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -68,7 +68,7 @@ try
 
         nvcv::Tensor transMatrixTensor({{shape.x, 6}, "NW"}, nvcv::TYPE_F32);
 
-        benchutils::FillTensor<float>(transMatrixTensor, [&transMatrix](const long4 &c){ return transMatrix[c.y]; });
+        benchutils::FillTensor<float>(transMatrixTensor, [&transMatrix](const long4_16a &c){ return transMatrix[c.y]; });
 
         state.exec(nvbench::exec_tag::sync,
                    [&op, &src, &dst, &transMatrixTensor, &flags, &borderType, &borderValue](nvbench::launch &launch)

@@ -26,13 +26,16 @@ WHEEL_DIR="${PYTHON_BUILD_DIR}/dist"
 REPAIRED_WHEEL_DIR="${PYTHON_BUILD_DIR}/repaired_wheels"
 WHEEL_BUILD_DIR="${PYTHON_BUILD_DIR}/build_wheel"
 LIB_DIR="${PYTHON_BUILD_DIR}/cvcuda_cu${CUDA_VERSION_MAJOR}.libs"
-SUPPORTED_PYTHONS=("38" "39" "310" "311" "312" "313")
+SUPPORTED_PYTHONS=("39" "310" "311" "312" "313" "314")
+
+# Option to force universal wheel creation even if not all Python versions are built
+FORCE_UNIVERSAL=${FORCE_UNIVERSAL:-false}
 
 detect_platform_tag() {
     if [ -n "${AUDITWHEEL_PLAT}" ]; then
         echo "${AUDITWHEEL_PLAT}"
     else
-        echo "linux_$(uname -m)"
+        echo "auto"
     fi
 }
 
@@ -48,17 +51,15 @@ mkdir -p "${WHEEL_DIR}" "${REPAIRED_WHEEL_DIR}" "${WHEEL_BUILD_DIR}" "${LIB_DIR}
 
 # Detect available Python bindings
 AVAILABLE_PYTHONS=()
-PYTHON_EXECUTABLES=()
 for py_ver in "${SUPPORTED_PYTHONS[@]}"; do
     py_exec="python3.${py_ver:1}"
     if command -v "${py_exec}" &> /dev/null; then
-        if compgen -G "${PYTHON_BUILD_DIR}/cvcuda/_bindings/cvcuda.cpython-${py_ver}-*.so" > /dev/null; then
+        if compgen -G "${PYTHON_BUILD_DIR}/cvcuda/*.cpython-${py_ver}-*.so" > /dev/null; then
             AVAILABLE_PYTHONS+=("cp${py_ver}")
-            PYTHON_EXECUTABLES+=("${py_exec}")
         fi
     fi
 done
-PYTHON_EXECUTABLE="${PYTHON_EXECUTABLES[0]}"
+PYTHON_EXECUTABLE=python3
 
 # Print the available Python bindings
 echo "Available Python Bindings: ${AVAILABLE_PYTHONS[*]}"
@@ -83,8 +84,10 @@ done
 
 # Create wheel structure
 ln -sf "${PYTHON_BUILD_DIR}/setup.py" "${WHEEL_BUILD_DIR}/"
+ln -sf "${PYTHON_BUILD_DIR}/README.md" "${WHEEL_BUILD_DIR}/"
+ln -sf "${PYTHON_BUILD_DIR}/pyproject.toml" "${WHEEL_BUILD_DIR}/"
+ln -sf "${PYTHON_BUILD_DIR}/MANIFEST.in" "${WHEEL_BUILD_DIR}/"
 ln -sf "${PYTHON_BUILD_DIR}/cvcuda" "${WHEEL_BUILD_DIR}/"
-ln -sf "${PYTHON_BUILD_DIR}/nvcv" "${WHEEL_BUILD_DIR}/"
 ln -sf "${LIB_DIR}" "${WHEEL_BUILD_DIR}/cvcuda_cu${CUDA_VERSION_MAJOR}.libs"
 
 echo "Printing currently installed python packages from v-env: $VIRTUAL_ENV and dir: `pwd`."
@@ -96,21 +99,79 @@ pushd "${WHEEL_BUILD_DIR}" > /dev/null
 ${PYTHON_EXECUTABLE} -m build --wheel --outdir="${WHEEL_DIR}" || ${PYTHON_EXECUTABLE} setup.py bdist_wheel --dist-dir="${WHEEL_DIR}"
 
 # Modify the wheel's Python and ABI tags for detected versions
+# If all supported Python versions are available or FORCE_UNIVERSAL is set, use py3-none for universal compatibility
+if [ "${#AVAILABLE_PYTHONS[@]}" -eq "${#SUPPORTED_PYTHONS[@]}" ] || [ "${FORCE_UNIVERSAL}" = "true" ]; then
+    echo "Creating universal py3-none wheel..."
+    echo "  Available Python versions: ${AVAILABLE_PYTHONS[*]}"
+    echo "  Supported Python versions: ${SUPPORTED_PYTHONS[*]}"
+    python_tag="py3"
+    abi_tag="none"
+
+    # Verify that we have bindings for the most common Python versions
+    if [ "${FORCE_UNIVERSAL}" = "true" ] && [ "${#AVAILABLE_PYTHONS[@]}" -lt 3 ]; then
+        echo "Warning: Creating universal wheel with only ${#AVAILABLE_PYTHONS[@]} Python version(s). This may cause compatibility issues."
+    fi
+else
+    echo "Creating multi-version wheel for available Python versions..."
+    echo "  Available: ${AVAILABLE_PYTHONS[*]}"
+    python_tag=$(IFS=. ; echo "${AVAILABLE_PYTHONS[*]}")
+    abi_tag="${python_tag}"
+fi
+
 # Ensuring the tag is propagated to the wheel
-${PYTHON_EXECUTABLE} -m pip install --upgrade wheel
-python_tag=$(IFS=. ; echo "${AVAILABLE_PYTHONS[*]}")
 for whl in "${WHEEL_DIR}"/*.whl; do
     ${PYTHON_EXECUTABLE} -m wheel tags --remove \
                         --python-tag "${python_tag}" \
-                        --abi-tag "${python_tag}" \
+                        --abi-tag "${abi_tag}" \
                         --platform-tag "${PLATFORM_TAG}" \
                         "${whl}"
 done
 popd > /dev/null
 
 echo "Repairing wheel for compliance..."
-${PYTHON_EXECUTABLE} -m pip install --upgrade auditwheel
+
+# check the auditwheel version
+auditwheel_version=$(${PYTHON_EXECUTABLE} -m pip list | grep auditwheel | awk '{print $2}')
+echo "Auditwheel version: ${auditwheel_version}"
+
+version_check() {
+    local version1=$1
+    local version2=$2
+    local IFS=.
+    local i
+    read -ra ver1 <<< "$version1"
+    read -ra ver2 <<< "$version2"
+
+    for ((i=${#ver1[@]}; i<${#ver2[@]}; i++)); do
+        ver1[i]=0
+    done
+    for ((i=${#ver2[@]}; i<${#ver1[@]}; i++)); do
+        ver2[i]=0
+    done
+
+    for ((i=0; i<${#ver1[@]}; i++)); do
+        if [[ -z ${ver2[i]} ]]; then
+            ver2[i]=0
+        fi
+        if ((10#${ver1[i]} > 10#${ver2[i]})); then
+            return 0
+        fi
+        if ((10#${ver1[i]} < 10#${ver2[i]})); then
+            return 1
+        fi
+    done
+    return 0
+}
+
+if ! version_check "${auditwheel_version}" "6.4.0" && [ "${PLATFORM_TAG}" = "auto" ]; then
+    echo "Auditwheel version ${auditwheel_version} is below requirement (>= 6.4.0) and PLATFORM_TAG is auto, set PLATFORM_TAG to linux_$(uname -m)"
+    PLATFORM_TAG="linux_$(uname -m)"
+    export AUDITWHEEL_PLAT="${PLATFORM_TAG}"
+fi
+
 for whl in "${WHEEL_DIR}"/*.whl; do
+    echo "Auditing wheel: ${whl}"
+    ${PYTHON_EXECUTABLE} -m auditwheel show "${whl}"
     ${PYTHON_EXECUTABLE} -m auditwheel repair "${whl}" --plat "${PLATFORM_TAG}" --exclude libcuda.so.1 -w "${REPAIRED_WHEEL_DIR}"
     rm "${whl}"
 done

@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2022-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2022-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,20 +28,32 @@
 
 import os
 import sys
-
 import sphinx_rtd_theme
 
 # -- Project information -----------------------------------------------------
 
 project = "CV-CUDA"
-copyright = "2022-2024, NVIDIA."
+copyright = "2022-2025, NVIDIA."
 author = "NVIDIA"
 version = "Beta"
 release = version
 
-# set python docstring source path
-lib_path = os.getenv("SPHINX_PYTHON_SRC", default=".")
-sys.path.insert(0, os.path.abspath(lib_path))
+# cvcuda module imported from virtual environment
+# The venv is created and wheel is installed by CMake before Sphinx runs
+# See docs/CMakeLists.txt for venv setup
+
+# Explicitly check that required modules are available
+try:
+    import cvcuda
+
+    print(f"Successfully imported cvcuda {cvcuda.__version__} from: {cvcuda.__file__}")
+except ImportError as e:
+    print(f"ERROR: Failed to import required modules: {e}", file=sys.stderr)
+    print(
+        "Please ensure cvcuda is installed in the Python environment.",
+        file=sys.stderr,
+    )
+    sys.exit(1)
 
 # -- General configuration ---------------------------------------------------
 
@@ -133,6 +145,7 @@ extensions.append("breathe")
 extensions.append("sphinx.ext.autodoc")
 extensions.append("sphinx.ext.viewcode")
 extensions.append("sphinx.ext.napoleon")
+extensions.append("sphinx_tabs.tabs")
 
 # -- Extension configuration -------------------------------------------------
 # Set up the default project for breathe extension

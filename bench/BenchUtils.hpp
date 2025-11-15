@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2023-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2023-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -207,7 +207,7 @@ struct Randomizer
         return ret;
     }
 
-    VT operator()(const long4 &)
+    VT operator()(const long4_16a &)
     {
         return operator()();
     }
@@ -236,10 +236,10 @@ inline void FillBuffer(std::vector<uint8_t> &vec, const ST &shape, const ST &str
             {
                 for (long w = 0; w < (nvcv::cuda::NumElements<ST> == 4 ? nvcv::cuda::GetElement(shape, 3) : 1); ++w)
                 {
-                    long4 coord{x, y, z, w};
-                    ST    stCoord = nvcv::cuda::DropCast<nvcv::cuda::NumElements<ST>>(coord);
+                    long4_16a coord16a{x, y, z, w};
+                    ST        stCoord = nvcv::cuda::DropCast<nvcv::cuda::NumElements<ST>>(coord16a);
 
-                    ValueAt<VT>(vec, strides, stCoord) = valuesGenerator(coord);
+                    ValueAt<VT>(vec, strides, stCoord) = valuesGenerator(coord16a);
                 }
             }
         }

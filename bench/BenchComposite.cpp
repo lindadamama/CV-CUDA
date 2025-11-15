@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2023-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2023-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -48,7 +48,7 @@ try
 
         benchutils::FillTensor<T>(fg, benchutils::RandomValues<T>());
         benchutils::FillTensor<T>(bg, benchutils::RandomValues<T>());
-        benchutils::FillTensor<M>(mask, [](const long4 &){ return 1; });
+        benchutils::FillTensor<M>(mask, [](const long4_16a &){ return 1; });
 
         state.exec(nvbench::exec_tag::sync, [&op, &fg, &bg, &mask, &dst](nvbench::launch &launch)
         {
@@ -68,7 +68,7 @@ try
         dst.pushBack(fg.begin(), fg.end());
 
         benchutils::FillImageBatch<M>(mask, long2{shape.z, shape.y}, long2{varShape, varShape},
-                                      [](const long4 &){ return 1; });
+                                      [](const long4_16a &){ return 1; });
 
         state.exec(nvbench::exec_tag::sync, [&op, &fg, &bg, &mask, &dst](nvbench::launch &launch)
         {

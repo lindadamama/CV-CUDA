@@ -467,6 +467,7 @@ NVCV_TEST_SUITE_P(OpMedianBlur_Negative, test::ValueList<nvcv::ImageFormat, nvcv
     // inFmt, outFmt, kernelSize
     {nvcv::FMT_RGB8p, nvcv::FMT_RGB8, {3, 3}},
     {nvcv::FMT_RGB8, nvcv::FMT_RGB8p, {3, 3}},
+    {nvcv::FMT_RGB8p, nvcv::FMT_RGB8p, {3, 3}},
     {nvcv::FMT_RGBf16, nvcv::FMT_RGBf16, {3, 3}},
     {nvcv::FMT_RGB8, nvcv::FMT_RGB8, {4, 3}},
     {nvcv::FMT_RGB8, nvcv::FMT_RGB8, {3, 4}},
@@ -475,6 +476,7 @@ NVCV_TEST_SUITE_P(OpMedianBlur_Negative, test::ValueList<nvcv::ImageFormat, nvcv
 NVCV_TEST_SUITE_P(OpMedianBlurVarshape_Negative, test::ValueList<nvcv::ImageFormat, nvcv::ImageFormat, nvcv::Size2D, int, int>{
     // inFmt, outFmt, kernelSize, maxBatchSize, numImages
     {nvcv::FMT_RGB8p, nvcv::FMT_RGB8, {3, 3}, 2, 2},
+    {nvcv::FMT_RGB8p, nvcv::FMT_RGB8p, {3, 3}, 2, 2},
     {nvcv::FMT_RGB8, nvcv::FMT_RGB8p, {3, 3}, 2, 2},
     {nvcv::FMT_RGBf16, nvcv::FMT_RGBf16, {3, 3}, 2, 2},
     {nvcv::FMT_RGB8, nvcv::FMT_RGB8, {4, 3}, 2, 2},

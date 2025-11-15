@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2023-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2023-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -42,7 +42,7 @@ using uniform_distribution
     = std::conditional_t<std::is_integral_v<T>, std::uniform_int_distribution<T>, std::uniform_real_distribution<T>>;
 
 template<typename ValueType>
-void CompareTensors(std::vector<uint8_t> &dst, std::vector<uint8_t> &ref, const long4 &strides, const int3 &shape,
+void CompareTensors(std::vector<uint8_t> &dst, std::vector<uint8_t> &ref, const long4_16a &strides, const int3 &shape,
                     int numPlanes, float tolerance)
 {
     for (int z = 0; z < shape.z; ++z)
@@ -84,7 +84,7 @@ inline nvcv::Tensor GetArgTensor(int numSamples)
 template<typename ValueType, typename Ret>
 Ret GetHalfRange()
 {
-    if constexpr (std::is_same_v<ValueType, uchar>)
+    if constexpr (std::is_same_v<ValueType, uchar> || std::is_same_v<ValueType, signed char>)
     {
         return 128.;
     }
@@ -172,8 +172,8 @@ struct Argument
 };
 
 template<typename SrcType, typename DstType, typename ArgT>
-void BrightnessContrast(std::vector<uint8_t> &src, std::vector<uint8_t> &dst, const long4 &srcStrides,
-                        const long4 &dstStrides, const int3 &shape, int numPlanes, int sampleIdx, ArgT brightness,
+void BrightnessContrast(std::vector<uint8_t> &src, std::vector<uint8_t> &dst, const long4_16a &srcStrides,
+                        const long4_16a &dstStrides, const int3 &shape, int numPlanes, int sampleIdx, ArgT brightness,
                         ArgT contrast, ArgT brightnessShift, ArgT contrastCenter)
 {
     using DstBT               = cuda::BaseType<DstType>;
@@ -318,10 +318,10 @@ TYPED_TEST(OpBrightnessContrast, correct_output)
     int numRows = dstAccess->numRows();
     ASSERT_EQ(srcAccess->numRows(), numRows);
     ASSERT_TRUE(srcAccess->numCols() == dstAccess->numCols() && srcAccess->numChannels() == dstAccess->numChannels());
-    long4 srcStrides{srcAccess->sampleStride(), srcAccess->planeStride(), srcAccess->rowStride(),
-                     srcAccess->colStride()};
-    long4 dstStrides{dstAccess->sampleStride(), dstAccess->planeStride(), dstAccess->rowStride(),
-                     dstAccess->colStride()};
+    long4_16a srcStrides{srcAccess->sampleStride(), srcAccess->planeStride(), srcAccess->rowStride(),
+                         srcAccess->colStride()};
+    long4_16a dstStrides{dstAccess->sampleStride(), dstAccess->planeStride(), dstAccess->rowStride(),
+                         dstAccess->colStride()};
 
     // if the image is not planar, the stride is set 0 by `Access` helper,
     // compute the "proper" stride
@@ -524,10 +524,10 @@ TYPED_TEST(OpBrightnessContrast, varshape_correct_output)
 
         ASSERT_EQ(srcData->numPlanes(), dstData->numPlanes());
 
-        int   srcRowStride = srcData->plane(0).rowStride;
-        int   dstRowStride = dstData->plane(0).rowStride;
-        long4 srcStrides{0, imgSrc[z].size().h * srcRowStride, srcRowStride, sizeof(SrcType)};
-        long4 dstStrides{0, imgDst[z].size().h * dstRowStride, dstRowStride, sizeof(DstType)};
+        int       srcRowStride = srcData->plane(0).rowStride;
+        int       dstRowStride = dstData->plane(0).rowStride;
+        long4_16a srcStrides{0, imgSrc[z].size().h * srcRowStride, srcRowStride, sizeof(SrcType)};
+        long4_16a dstStrides{0, imgDst[z].size().h * dstRowStride, dstRowStride, sizeof(DstType)};
 
         int numPlanes = srcImgFormat.numPlanes();
 
@@ -554,6 +554,269 @@ TYPED_TEST(OpBrightnessContrast, varshape_correct_output)
 
         float absTolerance = std::is_integral_v<DstBT> ? 1 : 1e-5;
         CompareTensors<DstType>(dstVec, refVec, dstStrides, sampleShape, numPlanes, absTolerance);
+    }
+
+    ASSERT_EQ(cudaSuccess, cudaStreamDestroy(stream));
+}
+
+TEST(OpBrightnessContrast_Negative, createWithNullHandle)
+{
+    EXPECT_EQ(NVCV_ERROR_INVALID_ARGUMENT, cvcudaBrightnessContrastCreate(nullptr));
+}
+
+#define NVCV_NEGATIVE_CASE(SrcShape, DstShape, SrcType, DstType, SrcImgFormat, DstImgFormat, ArgType, ArgCounts) \
+    ttype::Types<ttype::Value<SrcShape>, ttype::Value<DstShape>, SrcType, DstType, ttype::Value<SrcImgFormat>,   \
+                 ttype::Value<DstImgFormat>, ArgType, ttype::Value<ArgCounts>>
+
+NVCV_TYPED_TEST_SUITE(
+    OpBrightnessContrast_Negative,
+    ttype::Types<
+        // invalid data type
+        NVCV_NEGATIVE_CASE(NVCV_SHAPE(32, 32, 1), NVCV_SHAPE(32, 32, 1), char, char, NVCV_IMAGE_FORMAT_S8,
+                           NVCV_IMAGE_FORMAT_S8, float, NVCV_ARGS_COUNT(1, 1, 1, 1)),
+        NVCV_NEGATIVE_CASE(NVCV_SHAPE(32, 32, 1), NVCV_SHAPE(32, 32, 1), uchar, uchar, NVCV_IMAGE_FORMAT_U8,
+                           NVCV_IMAGE_FORMAT_U8, double, NVCV_ARGS_COUNT(1, 1, 1, 1)),
+        NVCV_NEGATIVE_CASE(NVCV_SHAPE(32, 32, 1), NVCV_SHAPE(32, 32, 1), int, int, NVCV_IMAGE_FORMAT_S32,
+                           NVCV_IMAGE_FORMAT_S32, float, NVCV_ARGS_COUNT(1, 1, 1, 1)),
+        // invalid shape
+        NVCV_NEGATIVE_CASE(NVCV_SHAPE(40, 39, 2), NVCV_SHAPE(40, 39, 1), uchar, uchar, NVCV_IMAGE_FORMAT_U8,
+                           NVCV_IMAGE_FORMAT_U8, float, NVCV_ARGS_COUNT(0, 1, 1, 1)),
+        NVCV_NEGATIVE_CASE(NVCV_SHAPE(41, 39, 1), NVCV_SHAPE(40, 39, 1), uchar, uchar, NVCV_IMAGE_FORMAT_U8,
+                           NVCV_IMAGE_FORMAT_U8, float, NVCV_ARGS_COUNT(0, 1, 1, 1)),
+        // invalid planes
+        NVCV_NEGATIVE_CASE(NVCV_SHAPE(42, 41, 7), NVCV_SHAPE(42, 41, 7), uchar3, uchar3, NVCV_IMAGE_FORMAT_RGB8,
+                           NVCV_IMAGE_FORMAT_RGB8p, float, NVCV_ARGS_COUNT(7, 7, 7, 7))>);
+
+TYPED_TEST(OpBrightnessContrast_Negative, invalid_parameters_src_dst_tensor)
+{
+    const int3 shapeSrc = ttype::GetValue<TypeParam, 0>;
+    const int3 shapeDst = ttype::GetValue<TypeParam, 1>;
+
+    using SrcType = ttype::GetType<TypeParam, 2>;
+    using DstType = ttype::GetType<TypeParam, 3>;
+    using SrcBT   = cuda::BaseType<SrcType>;
+    using DstBT   = cuda::BaseType<DstType>;
+
+    const nvcv::ImageFormat srcImgFormat{ttype::GetValue<TypeParam, 4>};
+    const nvcv::ImageFormat dstImgFormat{ttype::GetValue<TypeParam, 5>};
+
+    using ArgType        = ttype::GetType<TypeParam, 6>;
+    const int4 argCounts = ttype::GetValue<TypeParam, 7>;
+
+    nvcv::Tensor srcTensor = nvcv::util::CreateTensor(shapeSrc.z, shapeSrc.x, shapeSrc.y, srcImgFormat);
+    nvcv::Tensor dstTensor = nvcv::util::CreateTensor(shapeDst.z, shapeDst.x, shapeDst.y, dstImgFormat);
+
+    uniform_distribution<SrcBT> srcRand(SrcBT{0}, std::is_integral_v<SrcBT> ? cuda::TypeTraits<SrcBT>::max : SrcBT{1});
+    uniform_distribution<DstBT> dstRand(DstBT{0}, std::is_integral_v<DstBT> ? cuda::TypeTraits<DstBT>::max : DstBT{1});
+    std::mt19937_64             rng(12345);
+
+    cudaStream_t stream;
+    ASSERT_EQ(cudaSuccess, cudaStreamCreate(&stream));
+
+    Argument<ArgType> brightness;
+    Argument<ArgType> contrast;
+    Argument<ArgType> brightnessShift;
+    Argument<ArgType> contrastCenter;
+    ArgType           normalizationFactor = GetHalfRange<DstBT, ArgType>() / GetHalfRange<SrcBT, ArgType>();
+    brightness.populate(rng, argCounts.x, 0., 2. * normalizationFactor, 1.);
+    contrast.populate(rng, argCounts.y, 0., 2., 1.);
+    brightnessShift.populate(rng, argCounts.z, -dstRand(rng) / 2, dstRand(rng) / 2, 0.);
+    contrastCenter.populate(rng, argCounts.w, 0, srcRand(rng), GetHalfRange<SrcBT, ArgType>());
+
+    cvcuda::BrightnessContrast op;
+    EXPECT_EQ(NVCV_ERROR_INVALID_ARGUMENT, nvcv::ProtectCall(
+                                               [&]
+                                               {
+                                                   op(stream, srcTensor, dstTensor, brightness.m_argTensor,
+                                                      contrast.m_argTensor, brightnessShift.m_argTensor,
+                                                      contrastCenter.m_argTensor);
+                                               }));
+
+    ASSERT_EQ(cudaSuccess, cudaStreamSynchronize(stream));
+    ASSERT_EQ(cudaSuccess, cudaStreamDestroy(stream));
+}
+
+TYPED_TEST(OpBrightnessContrast_Negative, invalid_parameters_src_dst_varshape)
+{
+    const int3 shapeSrc = ttype::GetValue<TypeParam, 0>;
+    const int3 shapeDst = ttype::GetValue<TypeParam, 1>;
+
+    using SrcType = ttype::GetType<TypeParam, 2>;
+    using DstType = ttype::GetType<TypeParam, 3>;
+    using SrcBT   = cuda::BaseType<SrcType>;
+    using DstBT   = cuda::BaseType<DstType>;
+
+    const nvcv::ImageFormat srcImgFormat{ttype::GetValue<TypeParam, 4>};
+    const nvcv::ImageFormat dstImgFormat{ttype::GetValue<TypeParam, 5>};
+
+    using ArgType        = ttype::GetType<TypeParam, 6>;
+    const int4 argCounts = ttype::GetValue<TypeParam, 7>;
+
+    cudaStream_t stream;
+    ASSERT_EQ(cudaSuccess, cudaStreamCreate(&stream));
+
+    std::vector<nvcv::Image> imgSrc;
+    std::vector<nvcv::Image> imgDst;
+
+    uniform_distribution<SrcBT> srcRand(SrcBT{0}, std::is_integral_v<SrcBT> ? cuda::TypeTraits<SrcBT>::max : SrcBT{1});
+    uniform_distribution<DstBT> dstRand(DstBT{0}, std::is_integral_v<DstBT> ? cuda::TypeTraits<DstBT>::max : DstBT{1});
+    std::mt19937_64             rng(12345);
+
+    for (int z = 0; z < shapeSrc.z; ++z)
+    {
+        nvcv::Size2D imgShapeSrc{shapeSrc.x, shapeSrc.y};
+        imgSrc.emplace_back(imgShapeSrc, srcImgFormat);
+    }
+
+    for (int z = 0; z < shapeDst.z; ++z)
+    {
+        nvcv::Size2D imgShapeDst{shapeDst.x, shapeDst.y};
+        imgDst.emplace_back(imgShapeDst, dstImgFormat);
+    }
+
+    nvcv::ImageBatchVarShape batchSrc(shapeSrc.z);
+    nvcv::ImageBatchVarShape batchDst(shapeDst.z);
+    batchSrc.pushBack(imgSrc.begin(), imgSrc.end());
+    batchDst.pushBack(imgDst.begin(), imgDst.end());
+
+    Argument<ArgType> brightness;
+    Argument<ArgType> contrast;
+    Argument<ArgType> brightnessShift;
+    Argument<ArgType> contrastCenter;
+    ArgType           normalizationFactor = GetHalfRange<DstBT, ArgType>() / GetHalfRange<SrcBT, ArgType>();
+    brightness.populate(rng, argCounts.x, 0., 2. * normalizationFactor, 1.);
+    contrast.populate(rng, argCounts.y, 0., 2., 1.);
+    brightnessShift.populate(rng, argCounts.z, -dstRand(rng) / 2, dstRand(rng) / 2, 0.);
+    contrastCenter.populate(rng, argCounts.w, 0, srcRand(rng), GetHalfRange<SrcBT, ArgType>());
+
+    cvcuda::BrightnessContrast op;
+    EXPECT_EQ(NVCV_ERROR_INVALID_ARGUMENT, nvcv::ProtectCall(
+                                               [&]
+                                               {
+                                                   op(stream, batchSrc, batchDst, brightness.m_argTensor,
+                                                      contrast.m_argTensor, brightnessShift.m_argTensor,
+                                                      contrastCenter.m_argTensor);
+                                               }));
+
+    ASSERT_EQ(cudaSuccess, cudaStreamSynchronize(stream));
+    ASSERT_EQ(cudaSuccess, cudaStreamDestroy(stream));
+}
+
+TEST(OpBrightnessContrast_Negative, different_format_varshape)
+{
+    std::vector<std::pair<nvcv::ImageFormat, nvcv::ImageFormat>> extraFmts{
+        { nvcv::FMT_RGB8, nvcv::FMT_RGBA8},
+        {nvcv::FMT_RGBA8,  nvcv::FMT_RGB8}
+    };
+
+    for (const auto &testCase : extraFmts)
+    {
+        auto extraFmtSrc = testCase.first;
+        auto extraFmtDst = testCase.second;
+
+        const int               numSamples = 10;
+        const int               x          = 32;
+        const int3              shape{x, x, numSamples};
+        const nvcv::ImageFormat imgFmt = nvcv::FMT_RGB8;
+        nvcv::Size2D            imgShape2D{x, x};
+
+        nvcv::Tensor srcTensor = nvcv::util::CreateTensor(shape.z, shape.x, shape.y, imgFmt);
+        nvcv::Tensor dstTensor = nvcv::util::CreateTensor(shape.z, shape.x, shape.y, imgFmt);
+        nvcv::Tensor brightness({{numSamples}, "W"}, nvcv::TYPE_F32);
+        nvcv::Tensor contrast({{numSamples}, "W"}, nvcv::TYPE_F32);
+        nvcv::Tensor brightnessShift({{numSamples}, "W"}, nvcv::TYPE_F32);
+        nvcv::Tensor contrastCenter({{numSamples}, "W"}, nvcv::TYPE_F32);
+
+        cudaStream_t stream;
+        ASSERT_EQ(cudaSuccess, cudaStreamCreate(&stream));
+
+        std::vector<nvcv::Image> imgSrc;
+        std::vector<nvcv::Image> imgDst;
+
+        for (int z = 0; z < numSamples - 1; ++z)
+        {
+            imgSrc.emplace_back(imgShape2D, imgFmt);
+            imgDst.emplace_back(imgShape2D, imgFmt);
+        }
+        imgSrc.emplace_back(imgShape2D, extraFmtSrc);
+        imgDst.emplace_back(imgShape2D, extraFmtDst);
+
+        nvcv::ImageBatchVarShape batchSrc(numSamples);
+        nvcv::ImageBatchVarShape batchDst(numSamples);
+        batchSrc.pushBack(imgSrc.begin(), imgSrc.end());
+        batchDst.pushBack(imgDst.begin(), imgDst.end());
+
+        cvcuda::BrightnessContrast op;
+        EXPECT_EQ(NVCV_ERROR_INVALID_ARGUMENT,
+                  nvcv::ProtectCall(
+                      [&] { op(stream, batchSrc, batchDst, brightness, contrast, brightnessShift, contrastCenter); }));
+
+        ASSERT_EQ(cudaSuccess, cudaStreamSynchronize(stream));
+        ASSERT_EQ(cudaSuccess, cudaStreamDestroy(stream));
+    }
+}
+
+TEST(OpBrightnessContrast_Negative, invalid_parameters_tensors)
+{
+    const int               numSamples = 10;
+    const int               x          = 32;
+    const int3              shape{x, x, numSamples};
+    const nvcv::ImageFormat imgFmt{NVCV_IMAGE_FORMAT_RGB8};
+
+    nvcv::Tensor srcTensor = nvcv::util::CreateTensor(shape.z, shape.x, shape.y, imgFmt);
+    nvcv::Tensor dstTensor = nvcv::util::CreateTensor(shape.z, shape.x, shape.y, imgFmt);
+    nvcv::Tensor validBrightnessTensor({{numSamples}, "W"}, nvcv::TYPE_F32);
+    nvcv::Tensor validContrastTensor({{numSamples}, "W"}, nvcv::TYPE_F32);
+    nvcv::Tensor validBrightnessShiftTensor({{numSamples}, "W"}, nvcv::TYPE_F32);
+    nvcv::Tensor validContrastCenterTensor({{numSamples}, "W"}, nvcv::TYPE_F32);
+
+    cudaStream_t stream;
+    ASSERT_EQ(cudaSuccess, cudaStreamCreate(&stream));
+    cvcuda::BrightnessContrast op;
+
+    auto runOp = [&](nvcv::Tensor &brightness, nvcv::Tensor &contrast, nvcv::Tensor &brightnessShift,
+                     nvcv::Tensor &contrastCenter)
+    {
+        EXPECT_EQ(
+            NVCV_ERROR_INVALID_ARGUMENT,
+            nvcv::ProtectCall(
+                [&] { op(stream, srcTensor, dstTensor, brightness, contrast, brightnessShift, contrastCenter); }));
+    };
+    auto runOpWithInvalidTensor = [&](nvcv::Tensor &invalidTensor)
+    {
+        runOp(invalidTensor, validContrastTensor, validBrightnessShiftTensor, validContrastCenterTensor);
+        runOp(validBrightnessTensor, invalidTensor, validBrightnessShiftTensor, validContrastCenterTensor);
+        runOp(validBrightnessTensor, validContrastTensor, invalidTensor, validContrastCenterTensor);
+        runOp(validBrightnessTensor, validContrastTensor, validBrightnessShiftTensor, invalidTensor);
+    };
+
+    // not 1D tensor
+    {
+        nvcv::Tensor invalidTensor(
+            {
+                {numSamples, 2},
+                "NW"
+        },
+            nvcv::TYPE_F32);
+        runOpWithInvalidTensor(invalidTensor);
+    }
+
+    // length mismatch
+    {
+        nvcv::Tensor invalidTensor({{numSamples + 1}, "N"}, nvcv::TYPE_F32);
+        runOpWithInvalidTensor(invalidTensor);
+    }
+
+    // invalid dtype
+    {
+        nvcv::Tensor invalidTensor({{numSamples}, "N"}, nvcv::TYPE_U32);
+        runOpWithInvalidTensor(invalidTensor);
+    }
+
+    // brightness/contrast/brightness shift/contrast center dtype mismatch
+    {
+        nvcv::Tensor invalidTensor({{numSamples}, "N"}, nvcv::TYPE_F64);
+        runOpWithInvalidTensor(invalidTensor);
     }
 
     ASSERT_EQ(cudaSuccess, cudaStreamDestroy(stream));

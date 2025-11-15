@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2022-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2022-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * NVIDIA CORPORATION, its affiliates and licensors retain all intellectual
@@ -96,6 +96,12 @@ TEST_P(CheckLegacyHelpersDataType, check_conversion_to_legacy_data_type)
     nvcv::DataKind  kind   = GetParamValue<2>();
 
     EXPECT_EQ(expect, helpers::GetLegacyDataType(bpp, kind));
+}
+
+TEST(CheckLegacyHelpersDataType, invalid_tensor_layout)
+{
+    nvcv::TensorLayout layout = nvcv::TENSOR_DHW;
+    EXPECT_THROW(helpers::GetLegacyDataFormat(layout), nvcv::Exception);
 }
 
 // clang-format off
@@ -204,6 +210,13 @@ TEST_P(CheckLegacyTranslateError, check_error_conversion)
     legOp::ErrorCode err    = GetParamValue<1>();
     EXPECT_EQ(nvcv::util::TranslateError(err), expect);
 }
+
+#ifndef ENABLE_SANITIZER
+TEST(CheckLegacyTranslateError, invalid_conversion)
+{
+    EXPECT_EQ(nvcv::util::TranslateError(static_cast<legOp::ErrorCode>(255)), NVCV_ERROR_INTERNAL);
+}
+#endif
 
 // clang-format off
 NVCV_TEST_SUITE_P(CheckLegacyToString, test::ValueList<legOp::ErrorCode, std::string, std::string>

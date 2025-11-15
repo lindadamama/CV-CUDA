@@ -1,4 +1,4 @@
-/* Copyright (c) 2021-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+/* Copyright (c) 2021-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  *
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
  * SPDX-License-Identifier: Apache-2.0
@@ -187,6 +187,18 @@ ErrorCode NormalizeVarShape::infer(const nvcv::ImageBatchVarShapeDataStridedCuda
                                    const nvcv::ImageBatchVarShapeDataStridedCuda &outData, const float global_scale,
                                    const float shift, const float epsilon, const uint32_t flags, cudaStream_t stream)
 {
+    if (!inData.uniqueFormat())
+    {
+        LOG_ERROR("Images in the input batch must all have the same format");
+        return ErrorCode::INVALID_DATA_FORMAT;
+    }
+
+    if (!outData.uniqueFormat())
+    {
+        LOG_ERROR("Images in the output batch must all have the same format");
+        return ErrorCode::INVALID_DATA_FORMAT;
+    }
+
     DataFormat input_format  = helpers::GetLegacyDataFormat(inData);
     DataFormat output_format = helpers::GetLegacyDataFormat(outData);
     if (input_format != output_format)
@@ -203,12 +215,6 @@ ErrorCode NormalizeVarShape::infer(const nvcv::ImageBatchVarShapeDataStridedCuda
         return ErrorCode::INVALID_DATA_FORMAT;
     }
 
-    if (!inData.uniqueFormat())
-    {
-        LOG_ERROR("Images in the input batch must all have the same format");
-        return ErrorCode::INVALID_DATA_FORMAT;
-    }
-
     DataType data_type = helpers::GetLegacyDataType(inData.uniqueFormat());
 
     if (!(data_type == kCV_8U || data_type == kCV_8S || data_type == kCV_16U || data_type == kCV_16S
@@ -216,12 +222,6 @@ ErrorCode NormalizeVarShape::infer(const nvcv::ImageBatchVarShapeDataStridedCuda
     {
         LOG_ERROR("Invalid DataType " << data_type);
         return ErrorCode::INVALID_DATA_TYPE;
-    }
-
-    if (!outData.uniqueFormat())
-    {
-        LOG_ERROR("Images in the output batch must all have the same format");
-        return ErrorCode::INVALID_DATA_FORMAT;
     }
 
     DataType out_data_type = helpers::GetLegacyDataType(outData.uniqueFormat());

@@ -1,4 +1,4 @@
-/* Copyright (c) 2021-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+/* Copyright (c) 2021-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  *
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
  * SPDX-License-Identifier: Apache-2.0
@@ -285,9 +285,18 @@ ErrorCode MinAreaRect::infer(const TensorDataStridedCuda &inData, const TensorDa
     auto outAccess = nvcv::TensorDataAccessStrided::Create(outData);
     NVCV_ASSERT(outAccess);
 
+    // Suppress false positive uninitialized warning from g++-12-14
+    // shape() properly initializes the TensorShape object
+#if defined(__GNUC__) && __GNUC__ >= 12
+#    pragma GCC diagnostic push
+#    pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#endif
     auto inShape               = inAccess->shape();
     int  contourBatch          = inShape[0];
     int  maxNumPointsInContour = inShape[1];
+#if defined(__GNUC__) && __GNUC__ >= 12
+#    pragma GCC diagnostic pop
+#endif
     if ((contourBatch > mMaxContourNum))
     {
         LOG_ERROR("Invalid contour number " << contourBatch);
@@ -302,6 +311,13 @@ ErrorCode MinAreaRect::infer(const TensorDataStridedCuda &inData, const TensorDa
                                   const TensorDataStridedCuda &numPointsInContour, const TensorDataStridedCuda &outData,
                                   int batch, int maxNumPointsInContour, cudaStream_t stream);
     static const minAreaRect_t funcs[5] = {0, 0, minAreaRect<ushort>, minAreaRect<short>, minAreaRect<int>};
+
+    // coverity[overrun-local] - bounds check via short-circuit: (input_datatype >= 5) prevents funcs access
+    if (input_datatype < 0 || input_datatype >= 5 || funcs[input_datatype] == 0)
+    {
+        LOG_ERROR("Unsupported input data type: " << input_datatype);
+        return ErrorCode::INVALID_DATA_TYPE;
+    }
 
     funcs[input_datatype](inData, mRotatedPointsDev, rotateCoeffsData, numPointsInContour, outData, contourBatch,
                           maxNumPointsInContour, stream);

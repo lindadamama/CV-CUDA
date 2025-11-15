@@ -14,6 +14,7 @@
 # limitations under the License.
 
 import cvcuda
+
 import numpy as np
 import pytest as t
 import cvcuda_util as util

@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2022-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2022-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,7 +15,8 @@
  * limitations under the License.
  */
 
-#include <common/TypedTests.hpp>           // for NVCV_TYPED_TEST_SUITE, etc.
+#include <common/TypedTests.hpp> // for NVCV_TYPED_TEST_SUITE, etc.
+#include <cvcuda/cuda_tools/Compat.hpp>
 #include <cvcuda/cuda_tools/MathOps.hpp>   // for operator == to allow EXPECT_EQ
 #include <cvcuda/cuda_tools/RangeCast.hpp> // the object of this test
 
@@ -44,10 +45,10 @@ NVCV_TYPED_TEST_SUITE(
     ttype::Types<float, ttype::Value<float{-1.23456f}>, ttype::Value<float{-1.23456f}>>,
     ttype::Types<double, ttype::Value<double{1.23456}>, ttype::Value<double{1.23456}>>,
     // float -> float
-    ttype::Types<float, ttype::Value<double4{-max<double>, -0.5, 1.5, max<double>}>,
+    ttype::Types<float, ttype::Value<double4_16a{-max<double>, -0.5, 1.5, max<double>}>,
                         ttype::Value<float4{-max<float>, -.5f, 1.5f, max<float>}>>,
     ttype::Types<double, ttype::Value<float4{-max<float>, 0.f, 1.5f, max<float>}>,
-                         ttype::Value<double4{-max<float>, 0.0, 1.5, max<float>}>>,
+                         ttype::Value<double4_16a{-max<float>, 0.0, 1.5, max<float>}>>,
     // int -> float
     ttype::Types<float, ttype::Value<char4{-128, -127, 0, 127}>, ttype::Value<float4{-1.f, -1.f, 0.f, 1.f}>>,
     ttype::Types<float, ttype::Value<char2{-12, 123}>, ttype::Value<float2{-12.f/127, 123.f/127}>>,

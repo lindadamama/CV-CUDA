@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2023-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2023-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -45,10 +45,10 @@ try
     nvcv::Tensor values({{shape.x}, "N"}, nvcv::TYPE_F32);
     nvcv::Tensor imgIdx({{shape.x}, "N"}, nvcv::TYPE_S32);
 
-    benchutils::FillTensor<int2>(anchor, [](const long4 &){ return int2{0, 0}; });
-    benchutils::FillTensor<int3>(erasing, [](const long4 &){ return int3{10, 10, 1}; });
-    benchutils::FillTensor<float>(values, [](const long4 &){ return 1.f; });
-    benchutils::FillTensor<int>(imgIdx, [](const long4 &){ return 0; });
+    benchutils::FillTensor<int2>(anchor, [](const long4_16a &){ return int2{0, 0}; });
+    benchutils::FillTensor<int3>(erasing, [](const long4_16a &){ return int3{10, 10, 1}; });
+    benchutils::FillTensor<float>(values, [](const long4_16a &){ return 1.f; });
+    benchutils::FillTensor<int>(imgIdx, [](const long4_16a &){ return 0; });
 
     if (varShape < 0) // negative var shape means use Tensor
     {

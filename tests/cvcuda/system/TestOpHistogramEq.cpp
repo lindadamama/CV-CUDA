@@ -313,6 +313,7 @@ NVCV_TEST_SUITE_P(OpHistogramEq_Negative, test::ValueList<nvcv::ImageFormat, nvc
     {nvcv::FMT_RGB8, nvcv::FMT_RGBf16},
     {nvcv::FMT_RGBf16, nvcv::FMT_RGBf16},
     {nvcv::FMT_RGB8, nvcv::FMT_RGB8p},
+    {nvcv::FMT_RGB8p, nvcv::FMT_RGB8p},
 });
 
 NVCV_TEST_SUITE_P(OpHistogramEqVarshape_Negative, test::ValueList<nvcv::ImageFormat, nvcv::ImageFormat, int, int>{

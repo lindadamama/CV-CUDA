@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2022-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2022-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -113,8 +113,8 @@ NVCV_TYPED_TEST_SUITE(
     ttype::Types<ttype::Value<uchar2{2, 1}>, ttype::Value<uchar2{2, 3}>, ttype::Value<false>>,
     ttype::Types<ttype::Value<int3{-1, 0, 1}>, ttype::Value<long3{-1, 0, 1}>, ttype::Value<true>>,
     ttype::Types<ttype::Value<int3{-2, 0, 2}>, ttype::Value<long3{-2, 1, 2}>, ttype::Value<false>>,
-    ttype::Types<ttype::Value<float4{0.f, 123.f, 234.f, 345.f}>, ttype::Value<ulong4{0, 123, 234, 345}>, ttype::Value<true>>,
-    ttype::Types<ttype::Value<float4{0.123f, 12.f, 23.f, 34.f}>, ttype::Value<ulong4{0, 12, 23, 34}>, ttype::Value<false>>
+    ttype::Types<ttype::Value<float4{0.f, 123.f, 234.f, 345.f}>, ttype::Value<ulong4_16a{0, 123, 234, 345}>, ttype::Value<true>>,
+    ttype::Types<ttype::Value<float4{0.123f, 12.f, 23.f, 34.f}>, ttype::Value<ulong4_16a{0, 12, 23, 34}>, ttype::Value<false>>
 >);
 
 // clang-format on
@@ -183,7 +183,7 @@ NVCV_TYPED_TEST_SUITE(
     ttype::Types<ttype::Value<ushort1{0}>, ttype::Value<int1{-1}>>,
     ttype::Types<ttype::Value<uchar2{0, 0xFF}>, ttype::Value<int2{-1, static_cast<int>(0xFFFFFF00)}>>,
     ttype::Types<ttype::Value<uint3{0x77778888, 0, 0x88887777}>, ttype::Value<uint3{0x88887777, max<unsigned int>, 0x77778888}>>,
-    ttype::Types<ttype::Value<long4{0, 1, 2, max<long>}>, ttype::Value<long4{-1, -2, -3, min<long>}>>
+    ttype::Types<ttype::Value<long4_16a{0, 1, 2, max<long>}>, ttype::Value<long4_16a{-1, -2, -3, min<long>}>>
 >);
 
 // clang-format on
@@ -207,7 +207,7 @@ NVCV_TYPED_TEST_SUITE(
     ttype::Types<ttype::Value<int2{1, 2}>, ttype::Value<ushort2{2, 3}>, ttype::Value<int2{-1, -1}>>,
     ttype::Types<ttype::Value<uint3{1, 2, 3}>, ttype::Value<dim3{1, 1, 1}>, ttype::Value<uint3{0, 1, 2}>>,
     ttype::Types<ttype::Value<long3{-1, 0, 1}>, ttype::Value<long3{1, 2, 3}>, ttype::Value<long3{-2, -2, -2}>>,
-    ttype::Types<ttype::Value<float4{0.f, -1.23f, -2.34f, -3.45f}>, ttype::Value<ulong4{0, 12, 23, 34}>,
+    ttype::Types<ttype::Value<float4{0.f, -1.23f, -2.34f, -3.45f}>, ttype::Value<ulong4_16a{0, 12, 23, 34}>,
                  ttype::Value<float4{0, -13.23f, -25.34f, -37.45f}>>
 >);
 
@@ -234,7 +234,7 @@ NVCV_TYPED_TEST_SUITE(
     ttype::Types<ttype::Value<uint2{1, 2}>, ttype::Value<ushort2{2, 3}>, ttype::Value<uint2{3, 5}>>,
     ttype::Types<ttype::Value<uint3{1, 2, 3}>, ttype::Value<dim3{1, 1, 1}>, ttype::Value<uint3{2, 3, 4}>>,
     ttype::Types<ttype::Value<long3{-1, 0, 1}>, ttype::Value<long3{1, 2, 3}>, ttype::Value<long3{0, 2, 4}>>,
-    ttype::Types<ttype::Value<float4{0.f, 1.23f, 2.34f, 3.45f}>, ttype::Value<ulong4{0, 12, 23, 34}>,
+    ttype::Types<ttype::Value<float4{0.f, 1.23f, 2.34f, 3.45f}>, ttype::Value<ulong4_16a{0, 12, 23, 34}>,
                  ttype::Value<float4{0, 13.23f, 25.34f, 37.45f}>>
 >);
 
@@ -261,7 +261,7 @@ NVCV_TYPED_TEST_SUITE(
     ttype::Types<ttype::Value<uint2{1, 2}>, ttype::Value<ushort2{2, 3}>, ttype::Value<uint2{2, 6}>>,
     ttype::Types<ttype::Value<uint3{1, 2, 3}>, ttype::Value<dim3{2, 2, 2}>, ttype::Value<uint3{2, 4, 6}>>,
     ttype::Types<ttype::Value<long3{-1, 0, 1}>, ttype::Value<long3{1, 2, 3}>, ttype::Value<long3{-1, 0, 3}>>,
-    ttype::Types<ttype::Value<float4{0.f, 0.5f, 1.25f, 2.75f}>, ttype::Value<ulong4{0, 12, 20, 24}>,
+    ttype::Types<ttype::Value<float4{0.f, 0.5f, 1.25f, 2.75f}>, ttype::Value<ulong4_16a{0, 12, 20, 24}>,
                  ttype::Value<float4{0, 6.f, 25.f, 66.f}>>
 >);
 
@@ -288,7 +288,7 @@ NVCV_TYPED_TEST_SUITE(
     ttype::Types<ttype::Value<uint2{2, 4}>, ttype::Value<ushort2{1, 2}>, ttype::Value<uint2{2, 2}>>,
     ttype::Types<ttype::Value<uint3{2, 4, 6}>, ttype::Value<dim3{2, 2, 2}>, ttype::Value<uint3{1, 2, 3}>>,
     ttype::Types<ttype::Value<long3{-1, 0, 2}>, ttype::Value<int3{1, 2, 1}>, ttype::Value<long3{-1, 0, 2}>>,
-    ttype::Types<ttype::Value<float4{0.f, 12.f, 21.f, 28.5f}>, ttype::Value<ulong4{1, 2, 3, 2}>,
+    ttype::Types<ttype::Value<float4{0.f, 12.f, 21.f, 28.5f}>, ttype::Value<ulong4_16a{1, 2, 3, 2}>,
                  ttype::Value<float4{0, 6.f, 7.f, 14.25f}>>
 >);
 
@@ -317,8 +317,8 @@ NVCV_TYPED_TEST_SUITE(
     ttype::Types<ttype::Value<uint2{2, 4}>, ttype::Value<ushort2{1, 3}>, ttype::Value<uint2{0, 1}>>,
     ttype::Types<ttype::Value<uint3{1, 2, 3}>, ttype::Value<dim3{2, 2, 2}>, ttype::Value<uint3{1, 0, 1}>>,
     ttype::Types<ttype::Value<long3{1, 0, 5}>, ttype::Value<int3{1, 2, 3}>, ttype::Value<long3{0, 0, 2}>>,
-    ttype::Types<ttype::Value<ulonglong4{0, 11, 20, 31}>, ttype::Value<ulong4{1, 2, 3, 7}>,
-                 ttype::Value<ulonglong4{0, 1, 2, 3}>>
+    ttype::Types<ttype::Value<ulonglong4_16a{0, 11, 20, 31}>, ttype::Value<ulong4_16a{1, 2, 3, 7}>,
+                 ttype::Value<ulonglong4_16a{0, 1, 2, 3}>>
 >);
 
 // clang-format on
@@ -343,8 +343,8 @@ NVCV_TYPED_TEST_SUITE(
     ttype::Types<ttype::Value<int1{0x1}>, ttype::Value<short1{0x2}>, ttype::Value<int1{0}>>,
     ttype::Types<ttype::Value<uint2{0x2, 0x4}>, ttype::Value<ushort2{0x3, 0x5}>, ttype::Value<uint2{0x2, 0x4}>>,
     ttype::Types<ttype::Value<long3{0x1, 0, 0x5}>, ttype::Value<int3{0x1, 0x2, 0x3}>, ttype::Value<long3{0x1, 0, 0x1}>>,
-    ttype::Types<ttype::Value<ulonglong4{0, 0xF, 0xFF, 0xAA}>, ttype::Value<ulong4{0x1, 0x9, 0xA5, 0x55}>,
-                 ttype::Value<ulonglong4{0, 0x9, 0xA5, 0}>>
+    ttype::Types<ttype::Value<ulonglong4_16a{0, 0xF, 0xFF, 0xAA}>, ttype::Value<ulong4_16a{0x1, 0x9, 0xA5, 0x55}>,
+                 ttype::Value<ulonglong4_16a{0, 0x9, 0xA5, 0}>>
 >);
 
 // clang-format on
@@ -369,8 +369,8 @@ NVCV_TYPED_TEST_SUITE(
     ttype::Types<ttype::Value<int1{0x1}>, ttype::Value<short1{0x2}>, ttype::Value<int1{0x3}>>,
     ttype::Types<ttype::Value<uint2{0x2, 0x4}>, ttype::Value<ushort2{0x3, 0x5}>, ttype::Value<uint2{0x3, 0x5}>>,
     ttype::Types<ttype::Value<long3{0x1, 0, 0x5}>, ttype::Value<int3{0x1, 0x2, 0x3}>, ttype::Value<long3{0x1, 0x2, 0x7}>>,
-    ttype::Types<ttype::Value<ulonglong4{0, 0xF, 0xFF, 0xAA}>, ttype::Value<ulong4{0x1, 0x9, 0xA5, 0x55}>,
-                 ttype::Value<ulonglong4{0x1, 0xF, 0xFF, 0xFF}>>
+    ttype::Types<ttype::Value<ulonglong4_16a{0, 0xF, 0xFF, 0xAA}>, ttype::Value<ulong4_16a{0x1, 0x9, 0xA5, 0x55}>,
+                 ttype::Value<ulonglong4_16a{0x1, 0xF, 0xFF, 0xFF}>>
 >);
 
 // clang-format on
@@ -395,8 +395,8 @@ NVCV_TYPED_TEST_SUITE(
     ttype::Types<ttype::Value<int1{0x1}>, ttype::Value<short1{0x2}>, ttype::Value<int1{0x3}>>,
     ttype::Types<ttype::Value<uint2{0x2, 0x4}>, ttype::Value<ushort2{0x3, 0x5}>, ttype::Value<uint2{0x1, 0x1}>>,
     ttype::Types<ttype::Value<long3{0x1, 0, 0x5}>, ttype::Value<int3{0x1, 0x2, 0x3}>, ttype::Value<long3{0, 0x2, 0x6}>>,
-    ttype::Types<ttype::Value<ulonglong4{0, 0xF, 0xFF, 0xAA}>, ttype::Value<ulong4{0x1, 0x7, 0xAA, 0x55}>,
-                 ttype::Value<ulonglong4{0x1, 0x8, 0x55, 0xFF}>>
+    ttype::Types<ttype::Value<ulonglong4_16a{0, 0xF, 0xFF, 0xAA}>, ttype::Value<ulong4_16a{0x1, 0x7, 0xAA, 0x55}>,
+                 ttype::Value<ulonglong4_16a{0x1, 0x8, 0x55, 0xFF}>>
 >);
 
 // clang-format on
@@ -421,8 +421,8 @@ NVCV_TYPED_TEST_SUITE(
     ttype::Types<ttype::Value<int1{0x1}>, ttype::Value<short1{2}>, ttype::Value<int1{0x4}>>,
     ttype::Types<ttype::Value<uint2{0x2, 0x4}>, ttype::Value<ushort2{2, 1}>, ttype::Value<uint2{0x8, 0x8}>>,
     ttype::Types<ttype::Value<long3{0x1, 0, 0x5}>, ttype::Value<int3{1, 2, 1}>, ttype::Value<long3{0x2, 0, 0xA}>>,
-    ttype::Types<ttype::Value<ulonglong4{0, 0x8, 0x3, 0xA}>, ttype::Value<ulong4{1, 1, 2, 1}>,
-                 ttype::Value<ulonglong4{0, 0x10, 0xC, 0x14}>>
+    ttype::Types<ttype::Value<ulonglong4_16a{0, 0x8, 0x3, 0xA}>, ttype::Value<ulong4_16a{1, 1, 2, 1}>,
+                 ttype::Value<ulonglong4_16a{0, 0x10, 0xC, 0x14}>>
 >);
 
 // clang-format on
@@ -447,8 +447,8 @@ NVCV_TYPED_TEST_SUITE(
     ttype::Types<ttype::Value<int1{0x4}>, ttype::Value<short1{2}>, ttype::Value<int1{0x1}>>,
     ttype::Types<ttype::Value<uint2{0x4, 0x8}>, ttype::Value<ushort2{1, 1}>, ttype::Value<uint2{0x2, 0x4}>>,
     ttype::Types<ttype::Value<long3{0x3, 0, 0x5}>, ttype::Value<int3{1, 2, 1}>, ttype::Value<long3{0x1, 0, 0x2}>>,
-    ttype::Types<ttype::Value<ulonglong4{0, 0xF, 0x7, 0xA}>, ttype::Value<ulong4{1, 1, 2, 1}>,
-                 ttype::Value<ulonglong4{0, 0x7, 0x1, 0x5}>>
+    ttype::Types<ttype::Value<ulonglong4_16a{0, 0xF, 0x7, 0xA}>, ttype::Value<ulong4_16a{1, 1, 2, 1}>,
+                 ttype::Value<ulonglong4_16a{0, 0x7, 0x1, 0x5}>>
 >);
 
 // clang-format on
@@ -475,7 +475,7 @@ NVCV_TYPED_TEST_SUITE(
     ttype::Types<ttype::Value<int1{2}>, ttype::Value<short1{1}>, ttype::Value<int{2}>>,
     ttype::Types<ttype::Value<uint2{2, 4}>, ttype::Value<ushort2{1, 3}>, ttype::Value<uint{14}>>,
     ttype::Types<ttype::Value<uchar3{1, 2, 3}>, ttype::Value<dim3{2, 2, 2}>, ttype::Value<uint{12}>>,
-    ttype::Types<ttype::Value<float4{0.f, 1.f, 2.f, 3.f}>, ttype::Value<long4{1, 2, 3, 4}>, ttype::Value<float{20.f}>>
+    ttype::Types<ttype::Value<float4{0.f, 1.f, 2.f, 3.f}>, ttype::Value<long4_16a{1, 2, 3, 4}>, ttype::Value<float{20.f}>>
 >);
 
 // clang-format on

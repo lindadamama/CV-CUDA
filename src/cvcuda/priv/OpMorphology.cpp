@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2022-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2022-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -132,7 +132,6 @@ void Morphology::operator()(cudaStream_t stream, const nvcv::Tensor &in, const n
     }
     default:
         throw nvcv::Exception(nvcv::Status::ERROR_INVALID_ARGUMENT, "Wrong morph_type");
-        break;
     }
 }
 
@@ -224,7 +223,7 @@ void Morphology::operator()(cudaStream_t stream, const nvcv::ImageBatchVarShape 
         break;
     }
     default:
-        break;
+        throw nvcv::Exception(nvcv::Status::ERROR_INVALID_ARGUMENT, "Wrong morph_type");
     }
 }
 

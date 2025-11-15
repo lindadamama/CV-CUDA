@@ -683,3 +683,8 @@ TEST(OpBilateralFilterVarshape_Negative, varshape_hasDifferentFormat)
         EXPECT_EQ(cudaSuccess, cudaStreamDestroy(stream));
     }
 }
+
+TEST(OpBilateralFilter_Negative, create_null_handle)
+{
+    EXPECT_EQ(cvcudaBilateralFilterCreate(nullptr), NVCV_ERROR_INVALID_ARGUMENT);
+}

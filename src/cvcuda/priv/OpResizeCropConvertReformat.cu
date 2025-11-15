@@ -67,15 +67,6 @@ public:
     static_assert(N > 0 && N <= 4, "Number of DstMap channels must be >= 1 and <= 4.");
 
     DstMap(DstT *dst, size_t addN, int addH, int addW, size_t addC,
-           uchar4 mapC, int width, int height)
-          : m_dst {dst},
-            m_addN{addN},
-            m_addY{addH},
-            m_addX{addW},
-            m_wdth{width},
-            m_hght{height} {_init(addC, mapC); }
-
-    DstMap(DstT *dst, size_t addN, int addH, int addW, size_t addC,
            const NVCVChannelManip manip, int width, int height)
           : m_dst {dst},
             m_addN{addN},

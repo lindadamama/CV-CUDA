@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2022-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2022-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,3 +22,9 @@
 *.a filter=lfs diff=lfs merge=lfs -text
 *.hdf5 filter=lfs diff=lfs merge=lfs -text
 *.pt filter=lfs diff=lfs merge=lfs -text
+docs/sphinx/content/DataLayout.svg filter=lfs diff=lfs merge=lfs -text
+docs/sphinx/content/TensorBatch.svg filter=lfs diff=lfs merge=lfs -text
+docs/sphinx/content/ImageBatchVarShape.svg filter=lfs diff=lfs merge=lfs -text
+docs/sphinx/content/ImageBatch.svg filter=lfs diff=lfs merge=lfs -text
+docs/sphinx/content/DataLayout_1D.svg filter=lfs diff=lfs merge=lfs -text
+docs/sphinx/content/DataLayout_3D_2D_1D.svg filter=lfs diff=lfs merge=lfs -text

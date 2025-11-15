@@ -13,13 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import cvcuda
 import math
 import os
 import threading
 import torch
 import numpy as np
 import numbers
-import nvcv
+
 import copy
 import colorsys
 from typing_extensions import Callable, Concatenate, ParamSpec
@@ -27,34 +28,34 @@ from typing_extensions import Callable, Concatenate, ParamSpec
 P = ParamSpec("P")
 
 IMG_FORMAT_TO_TYPE = {
-    nvcv.Format.U8: nvcv.Type.U8,
-    nvcv.Format.U16: nvcv.Type.U16,
-    nvcv.Format.U32: nvcv.Type.U32,
-    nvcv.Format.S8: nvcv.Type.S8,
-    nvcv.Format.S16: nvcv.Type.S16,
-    nvcv.Format.S32: nvcv.Type.S32,
-    nvcv.Format.F32: nvcv.Type.F32,
-    nvcv.Format.F64: nvcv.Type.F64,
+    cvcuda.Format.U8: cvcuda.Type.U8,
+    cvcuda.Format.U16: cvcuda.Type.U16,
+    cvcuda.Format.U32: cvcuda.Type.U32,
+    cvcuda.Format.S8: cvcuda.Type.S8,
+    cvcuda.Format.S16: cvcuda.Type.S16,
+    cvcuda.Format.S32: cvcuda.Type.S32,
+    cvcuda.Format.F32: cvcuda.Type.F32,
+    cvcuda.Format.F64: cvcuda.Type.F64,
 }
 
 IMG_FORMAT_TO_NUMPY_DTYPE = {
-    nvcv.Format.HSV8: np.uint8,
-    nvcv.Format.BGRA8: np.uint8,
-    nvcv.Format.RGBA8: np.uint8,
-    nvcv.Format.BGR8: np.uint8,
-    nvcv.Format.RGB8: np.uint8,
-    nvcv.Format.RGBf32: np.float32,
-    nvcv.Format.RGBAf32: np.float32,
-    nvcv.Format.F32: np.float32,
-    nvcv.Format.F64: np.float64,
-    nvcv.Format.U8: np.uint8,
-    nvcv.Format.S8: np.int8,
-    nvcv.Format.Y8: np.uint8,
-    nvcv.Format.Y8_ER: np.uint8,
-    nvcv.Format.U16: np.uint16,
-    nvcv.Format.S16: np.int16,
-    nvcv.Format.U32: np.uint32,
-    nvcv.Format.S32: np.int32,
+    cvcuda.Format.HSV8: np.uint8,
+    cvcuda.Format.BGRA8: np.uint8,
+    cvcuda.Format.RGBA8: np.uint8,
+    cvcuda.Format.BGR8: np.uint8,
+    cvcuda.Format.RGB8: np.uint8,
+    cvcuda.Format.RGBf32: np.float32,
+    cvcuda.Format.RGBAf32: np.float32,
+    cvcuda.Format.F32: np.float32,
+    cvcuda.Format.F64: np.float64,
+    cvcuda.Format.U8: np.uint8,
+    cvcuda.Format.S8: np.int8,
+    cvcuda.Format.Y8: np.uint8,
+    cvcuda.Format.Y8_ER: np.uint8,
+    cvcuda.Format.U16: np.uint16,
+    cvcuda.Format.S16: np.int16,
+    cvcuda.Format.U32: np.uint32,
+    cvcuda.Format.S32: np.int32,
 }
 
 
@@ -169,15 +170,15 @@ def to_cuda_buffer(host_data):
     return buf
 
 
-def to_nvcv_tensor(data, layout):
-    """Convert a tensor in host or CUDA data with layout to nvcv.Tensor
+def to_cvcuda_tensor(data, layout):
+    """Convert a tensor in host or CUDA data with layout to cvcuda.Tensor
 
     Args:
         data (numpy array or CUDA array): Tensor in host data
         layout (string): Tensor layout (e.g. NC, HWC, NHWC)
 
     Returns:
-        nvcv.Tensor: The converted tensor
+        cvcuda.Tensor: The converted tensor
     """
     cuda_data = data
     if "__cuda_array_interface__" not in dir(cuda_data):
@@ -189,7 +190,7 @@ def to_nvcv_tensor(data, layout):
         elif len(shape) > len(layout):
             raise ValueError("Layout smaller than shape of tensor data")
     cuda_data.__cuda_array_interface__["shape"] = shape
-    return nvcv.as_tensor(cuda_data, layout=layout)
+    return cvcuda.as_tensor(cuda_data, layout=layout)
 
 
 def create_tensor(shape, dtype, layout, max_random=None, rng=None, transform_dist=None):
@@ -204,26 +205,26 @@ def create_tensor(shape, dtype, layout, max_random=None, rng=None, transform_dis
         transform_dist (function): To transform random values (e.g. dist_odd)
 
     Returns:
-        nvcv.Tensor: The created tensor
+        cvcuda.Tensor: The created tensor
     """
     h_data = generate_data(shape, dtype, max_random, rng)
     if transform_dist is not None:
         vec_transform_dist = np.vectorize(transform_dist)
         h_data = vec_transform_dist(h_data)
         h_data = h_data.astype(dtype)
-    return to_nvcv_tensor(h_data, layout)
+    return to_cvcuda_tensor(h_data, layout)
 
 
-def to_nvcv_image(host_data):
-    """Convert an image in host data to nvcv.Image
+def to_cvcuda_image(host_data):
+    """Convert an image in host data to cvcuda.Image
 
     Args:
         host_data (numpy array): Tensor in host data
 
     Returns:
-        nvcv.Image: The converted image
+        cvcuda.Image: The converted image
     """
-    return nvcv.as_image(to_cuda_buffer(host_data))
+    return cvcuda.as_image(to_cuda_buffer(host_data))
 
 
 def create_image(size, img_format, max_random=None, rng=None):
@@ -231,27 +232,27 @@ def create_image(size, img_format, max_random=None, rng=None):
 
     Args:
         size (tuple or list): Image size (width, height)
-        img_format (nvcv.Format): Image format
+        img_format (cvcuda.Format): Image format
         max_random (number or tuple or list): Maximum random value
         rng (numpy random Generator): To image with random values
 
     Returns:
-        nvcv.Image: The created image
+        cvcuda.Image: The created image
     """
     shape = (size[1], size[0], img_format.channels)
     dtype = IMG_FORMAT_TO_NUMPY_DTYPE[img_format]
     h_data = generate_data(shape, dtype, max_random, rng)
-    return to_nvcv_image(h_data)
+    return to_cvcuda_image(h_data)
 
 
 def create_image_pattern(
-    size, img_format=nvcv.Format.RGB8, bands=10, saturation=0.96, value=0.82
+    size, img_format=cvcuda.Format.RGB8, bands=10, saturation=0.96, value=0.82
 ):
     """Create an image with circles-band pattern
 
     Args:
         size (tuple or list): Image size (width, height)
-        img_format (nvcv.Format): Image format, must be RGB(A)(8, f32), BGR(A)8 or HSV8
+        img_format (cvcuda.Format): Image format, must be RGB(A)(8, f32), BGR(A)8 or HSV8
         bands (number): Number of circle bands in the image pattern
         saturation (number): Saturation of each HSV circle color, hue decreases along image
         value (number): Value of each HSV circle color, hue decreases along image
@@ -266,11 +267,11 @@ def create_image_pattern(
     image = np.zeros(shape, dtype=dtype)
     if max_r == 0:
         raise ValueError("Invalid image size")
-    if img_format in {nvcv.Format.RGBA8, nvcv.Format.RGB8, nvcv.Format.RGBf32}:
+    if img_format in {cvcuda.Format.RGBA8, cvcuda.Format.RGB8, cvcuda.Format.RGBf32}:
         format = "rgb"
-    elif img_format in {nvcv.Format.BGRA8, nvcv.Format.BGR8}:
+    elif img_format in {cvcuda.Format.BGRA8, cvcuda.Format.BGR8}:
         format = "bgr"
-    elif img_format in {nvcv.Format.HSV8}:
+    elif img_format in {cvcuda.Format.HSV8}:
         format = "hsv"
     else:
         raise ValueError("Invalid image format")
@@ -300,18 +301,18 @@ def create_image_batch(
 
     Args:
         num_images (number): Number of images in the batch
-        img_format (nvcv.ImageFormat): Image format of each image
+        img_format (cvcuda.ImageFormat): Image format of each image
         size (tuple or list): Image size (width, height) use (0, 0) for random sizes
         max_size (tuple or list): Use random image size from 1 to max_size
         max_random (number or tuple or list): Maximum random value inside each image
         rng (numpy random Generator): To fill each image with random values
 
     Returns:
-        nvcv.ImageBatchVarShape: The created image batch
+        cvcuda.ImageBatchVarShape: The created image batch
     """
     if size[0] == 0 or size[1] == 0:
         assert rng is not None
-    image_batch = nvcv.ImageBatchVarShape(num_images)
+    image_batch = cvcuda.ImageBatchVarShape(num_images)
     for i in range(num_images):
         w = (
             rng.integers(1, max_size[0] + 1)
@@ -331,15 +332,15 @@ def clone_image_batch(input_image_batch, img_format=None):
     """Clone an image batch
 
     Args:
-        input_image_batch (nvcv.ImageBatchVarShape): Image batch to be cloned
-        img_format (nvcv.ImageFormat): Image format of the output
+        input_image_batch (cvcuda.ImageBatchVarShape): Image batch to be cloned
+        img_format (cvcuda.ImageFormat): Image format of the output
 
     Returns:
-        nvcv.ImageBatchVarShape: The cloned image batch var shape
+        cvcuda.ImageBatchVarShape: The cloned image batch var shape
     """
-    output_image_batch = nvcv.ImageBatchVarShape(input_image_batch.capacity)
+    output_image_batch = cvcuda.ImageBatchVarShape(input_image_batch.capacity)
     for input_image in input_image_batch:
-        image = nvcv.Image(
+        image = cvcuda.Image(
             input_image.size, input_image.format if img_format is None else img_format
         )
         output_image_batch.pushback(image)

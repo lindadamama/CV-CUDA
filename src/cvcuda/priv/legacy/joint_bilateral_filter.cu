@@ -1,4 +1,4 @@
-/* Copyright (c) 2021-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+/* Copyright (c) 2021-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  *
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
  * SPDX-License-Identifier: Apache-2.0
@@ -247,11 +247,7 @@ ErrorCode JointBilateralFilter::infer(const TensorDataStridedCuda &inData, const
         return ErrorCode::INVALID_DATA_FORMAT;
     }
 
-    if ((inputColor_format != kNHWC) && (inputColor_format != kHWC))
-    {
-        LOG_ERROR("Invalid DataFormat both InputColor and Output must be kHWC or kNHWC");
-        return ErrorCode::INVALID_DATA_FORMAT;
-    }
+    // the (inputColor_format != kNHWC) && (inputColor_format != kHWC) check can be safely removed
 
     if (!(borderMode == NVCV_BORDER_CONSTANT || borderMode == NVCV_BORDER_REPLICATE || borderMode == NVCV_BORDER_REFLECT
           || borderMode == NVCV_BORDER_WRAP || borderMode == NVCV_BORDER_REFLECT101))

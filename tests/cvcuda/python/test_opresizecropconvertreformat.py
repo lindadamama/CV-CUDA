@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2024-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,7 +15,7 @@
 
 import numpy as np
 import pytest as t
-import nvcv
+
 import cvcuda
 import torch
 
@@ -36,7 +36,7 @@ import torch
             cvcuda.Interp.LINEAR,
             (0, 0, 224, 224),
             "NCHW",
-            nvcv.Type.F32,
+            cvcuda.Type.F32,
             cvcuda.ChannelManip.REVERSE,
             (4, 3, 224, 224),
             1,
@@ -49,7 +49,7 @@ import torch
             cvcuda.Interp.NEAREST,  # With NEAREST Interpolation
             (0, 0, 224, 224),
             "NCHW",
-            nvcv.Type.F32,
+            cvcuda.Type.F32,
             cvcuda.ChannelManip.REVERSE,
             (4, 3, 224, 224),
             1,
@@ -62,7 +62,7 @@ import torch
             cvcuda.Interp.NEAREST,
             (0, 0, 224, 224),
             "",  # Empty output layout means keep the same as input
-            nvcv.Type.F32,
+            cvcuda.Type.F32,
             cvcuda.ChannelManip.REVERSE,
             (4, 224, 224, 3),
             1,
@@ -88,7 +88,7 @@ import torch
             cvcuda.Interp.LINEAR,
             (0, 0, 200, 22),
             "NCHW",
-            nvcv.Type.F32,
+            cvcuda.Type.F32,
             cvcuda.ChannelManip.REVERSE,
             (17, 3, 22, 200),
             1,
@@ -101,7 +101,7 @@ import torch
             cvcuda.Interp.LINEAR,
             (0, 0, 200, 22),
             "NHWC",  # Same output layout as the input tensor
-            nvcv.Type.F32,
+            cvcuda.Type.F32,
             cvcuda.ChannelManip.REVERSE,
             (17, 22, 200, 3),
             1,
@@ -114,7 +114,7 @@ import torch
             cvcuda.Interp.NEAREST,
             (10, 20, 20, 35),
             "NCHW",
-            nvcv.Type.U8,  # Same dtype as the input tensor
+            cvcuda.Type.U8,  # Same dtype as the input tensor
             cvcuda.ChannelManip.NO_OP,  # No op here
             (3, 3, 35, 20),
             1,
@@ -127,7 +127,7 @@ import torch
             cvcuda.Interp.LINEAR,
             (0, 0, 224, 224),
             "CHW",
-            nvcv.Type.F32,
+            cvcuda.Type.F32,
             cvcuda.ChannelManip.REVERSE,
             (3, 224, 224),
             1,
@@ -140,7 +140,7 @@ import torch
             cvcuda.Interp.LINEAR,
             (0, 0, 224, 224),
             "CHW",
-            nvcv.Type.F32,
+            cvcuda.Type.F32,
             cvcuda.ChannelManip.REVERSE,
             (3, 224, 224),
             1,
@@ -153,7 +153,7 @@ import torch
             cvcuda.Interp.LINEAR,
             (0, 0, 1024, 224),  # Unchanged crop width
             "CHW",
-            nvcv.Type.F32,
+            cvcuda.Type.F32,
             cvcuda.ChannelManip.NO_OP,
             (3, 224, 1024),
             1,
@@ -166,7 +166,7 @@ import torch
             cvcuda.Interp.LINEAR,
             (0, 0, 200, 22),
             "NCHW",
-            nvcv.Type.F32,
+            cvcuda.Type.F32,
             cvcuda.ChannelManip.REVERSE,
             (4, 3, 22, 200),
             127.5,  # Normalize output to [-1:1]
@@ -179,7 +179,7 @@ import torch
             cvcuda.Interp.LINEAR,
             (0, 0, 1024, 224),
             "CHW",
-            nvcv.Type.F32,
+            cvcuda.Type.F32,
             cvcuda.ChannelManip.REVERSE,
             (3, 224, 1024),
             1,
@@ -192,7 +192,7 @@ import torch
             cvcuda.Interp.LINEAR,
             (0, 0, 59, 5),
             "CHW",
-            nvcv.Type.F32,
+            cvcuda.Type.F32,
             cvcuda.ChannelManip.REVERSE,
             (3, 5, 59),
             1,
@@ -205,7 +205,7 @@ import torch
             cvcuda.Interp.LINEAR,
             (0, 0, 61, 5),  # Out of range crop.
             "CHW",
-            nvcv.Type.F32,
+            cvcuda.Type.F32,
             cvcuda.ChannelManip.REVERSE,
             (3, 5, 59),
             1,
@@ -218,7 +218,7 @@ import torch
             cvcuda.Interp.AREA,  # With Area Interpolation
             (0, 0, 224, 224),
             "NCHW",
-            nvcv.Type.F32,
+            cvcuda.Type.F32,
             cvcuda.ChannelManip.REVERSE,
             (4, 3, 224, 224),
             1,
@@ -314,7 +314,7 @@ def test_op_resize_crop_convert_reformat(
             cvcuda.Interp.LINEAR,
             (0, 0, 224, 224),
             "NCHW",
-            nvcv.Type.F32,
+            cvcuda.Type.F32,
             cvcuda.ChannelManip.REVERSE,
             (10, 3, 224, 224),
             1,
@@ -329,7 +329,7 @@ def test_op_resize_crop_convert_reformat(
             cvcuda.Interp.LINEAR,
             (0, 0, 224, 190),
             "NHWC",  # Same output layout as the input
-            nvcv.Type.F32,
+            cvcuda.Type.F32,
             cvcuda.ChannelManip.REVERSE,
             (1, 190, 224, 3),
             1,
@@ -344,7 +344,7 @@ def test_op_resize_crop_convert_reformat(
             cvcuda.Interp.LINEAR,
             (0, 0, 224, 190),
             "NHWC",
-            nvcv.Type.F32,
+            cvcuda.Type.F32,
             cvcuda.ChannelManip.NO_OP,  # No channels swapping
             (50, 190, 224, 3),
             1,
@@ -359,7 +359,7 @@ def test_op_resize_crop_convert_reformat(
             cvcuda.Interp.LINEAR,
             (0, 0, 224, 190),
             "NCHW",
-            nvcv.Type.U8,  # Same uint8 dtype as the input
+            cvcuda.Type.U8,  # Same uint8 dtype as the input
             cvcuda.ChannelManip.REVERSE,
             (50, 3, 190, 224),
             1,
@@ -374,7 +374,7 @@ def test_op_resize_crop_convert_reformat(
             cvcuda.Interp.LINEAR,
             (0, 0, 224, 190),
             "NCHW",
-            nvcv.Type.U8,
+            cvcuda.Type.U8,
             cvcuda.ChannelManip.NO_OP,  # NO_OP
             (50, 3, 190, 224),
             1,
@@ -416,7 +416,7 @@ def test_op_resize_crop_convert_reformat_varshape(
 
     inputVarShape = cvcuda.ImageBatchVarShape(num_images)
     out_layout = out_layout if out_layout else "NHWC"
-    out_dtype = out_dtype if out_dtype else nvcv.Type.U8
+    out_dtype = out_dtype if out_dtype else cvcuda.Type.U8
 
     inputVarShape.pushback(
         [

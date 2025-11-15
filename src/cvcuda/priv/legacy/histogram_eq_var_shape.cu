@@ -1,4 +1,4 @@
-/* Copyright (c) 2021-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+/* Copyright (c) 2021-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  *
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
  * SPDX-License-Identifier: Apache-2.0
@@ -200,6 +200,18 @@ HistogramEqVarShape::~HistogramEqVarShape()
 ErrorCode HistogramEqVarShape::infer(const nvcv::ImageBatchVarShapeDataStridedCuda &inData,
                                      const nvcv::ImageBatchVarShapeDataStridedCuda &outData, cudaStream_t stream)
 {
+    if (!inData.uniqueFormat())
+    {
+        LOG_ERROR("Images in the input batch must all have the same format");
+        return ErrorCode::INVALID_DATA_FORMAT;
+    }
+
+    if (!outData.uniqueFormat())
+    {
+        LOG_ERROR("Images in the output batch must all have the same format");
+        return ErrorCode::INVALID_DATA_FORMAT;
+    }
+
     DataFormat input_format  = helpers::GetLegacyDataFormat(inData);
     DataFormat output_format = helpers::GetLegacyDataFormat(outData);
     if (input_format != output_format)
@@ -213,18 +225,6 @@ ErrorCode HistogramEqVarShape::infer(const nvcv::ImageBatchVarShapeDataStridedCu
     if (!(format == kNHWC || format == kHWC))
     {
         LOG_ERROR("Invliad DataFormat " << format);
-        return ErrorCode::INVALID_DATA_FORMAT;
-    }
-
-    if (!inData.uniqueFormat())
-    {
-        LOG_ERROR("Images in the input batch must all have the same format");
-        return ErrorCode::INVALID_DATA_FORMAT;
-    }
-
-    if (!outData.uniqueFormat())
-    {
-        LOG_ERROR("Images in the output batch must all have the same format");
         return ErrorCode::INVALID_DATA_FORMAT;
     }
 

@@ -1,4 +1,4 @@
-/* Copyright (c) 2021-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+/* Copyright (c) 2021-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  *
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
  * SPDX-License-Identifier: Apache-2.0
@@ -201,7 +201,7 @@ static void cuosd_apply(cuOSDContext_t context, cudaStream_t stream)
     {
         if (context->gpu_blur_commands == nullptr)
         {
-            context->gpu_blur_commands.reset(new Memory<BoxBlurCommand>());
+            context->gpu_blur_commands = std::make_unique<Memory<BoxBlurCommand>>();
         }
 
         context->gpu_blur_commands->alloc_or_resize_to(context->blur_commands.size());
@@ -249,20 +249,13 @@ inline ErrorCode ApplyBoxBlur_RGB(const nvcv::TensorDataStridedCuda &inData, con
     auto inAccess = nvcv::TensorDataAccessStridedImagePlanar::Create(inData);
     NVCV_ASSERT(inAccess);
 
-    cuda_op::DataType  inDataType = helpers::GetLegacyDataType(inData.dtype());
     cuda_op::DataShape inputShape = helpers::GetLegacyDataShape(inAccess->infoShape());
 
     auto outAccess = nvcv::TensorDataAccessStridedImagePlanar::Create(outData);
     NVCV_ASSERT(outAccess);
 
-    cuda_op::DataType  outDataType = helpers::GetLegacyDataType(outData.dtype());
     cuda_op::DataShape outputShape = helpers::GetLegacyDataShape(outAccess->infoShape());
 
-    if (outDataType != inDataType)
-    {
-        LOG_ERROR("Unsupported input/output DataType " << inDataType << "/" << outDataType);
-        return ErrorCode::INVALID_DATA_TYPE;
-    }
     if (outputShape.H != inputShape.H || outputShape.W != inputShape.W || outputShape.N != inputShape.N
         || outputShape.C != inputShape.C || outputShape.C != 3)
     {
@@ -324,20 +317,13 @@ inline ErrorCode ApplyBoxBlur_RGBA(const nvcv::TensorDataStridedCuda &inData,
     auto inAccess = nvcv::TensorDataAccessStridedImagePlanar::Create(inData);
     NVCV_ASSERT(inAccess);
 
-    cuda_op::DataType  inDataType = helpers::GetLegacyDataType(inData.dtype());
     cuda_op::DataShape inputShape = helpers::GetLegacyDataShape(inAccess->infoShape());
 
     auto outAccess = nvcv::TensorDataAccessStridedImagePlanar::Create(outData);
     NVCV_ASSERT(outAccess);
 
-    cuda_op::DataType  outDataType = helpers::GetLegacyDataType(outData.dtype());
     cuda_op::DataShape outputShape = helpers::GetLegacyDataShape(outAccess->infoShape());
 
-    if (outDataType != inDataType)
-    {
-        LOG_ERROR("Unsupported input/output DataType " << inDataType << "/" << outDataType);
-        return ErrorCode::INVALID_DATA_TYPE;
-    }
     if (outputShape.H != inputShape.H || outputShape.W != inputShape.W || outputShape.N != inputShape.N
         || outputShape.C != inputShape.C)
     {
@@ -412,11 +398,8 @@ static ErrorCode cuosd_draw_boxblur(cuOSDContext_t context, int width, int heigh
 BoxBlur::BoxBlur(DataShape max_input_shape, DataShape max_output_shape)
     : CudaBaseOp(max_input_shape, max_output_shape)
 {
-    m_context = new cuOSDContext();
-    if (m_context->gpu_blur_commands == nullptr)
-    {
-        m_context->gpu_blur_commands.reset(new Memory<BoxBlurCommand>());
-    }
+    m_context                    = new cuOSDContext();
+    m_context->gpu_blur_commands = std::make_unique<Memory<BoxBlurCommand>>();
     m_context->gpu_blur_commands->alloc_or_resize_to(PREALLOC_CMD_NUM * sizeof(BoxBlurCommand));
 }
 
@@ -469,7 +452,7 @@ ErrorCode BoxBlur::infer(const nvcv::TensorDataStridedCuda &inData, const nvcv::
     NVCVBlurBoxesImpl *_bboxes = (NVCVBlurBoxesImpl *)bboxes;
     if (_bboxes->batch() != batch)
     {
-        LOG_ERROR("Invalid bboxes batch = " << _bboxes->batch());
+        LOG_ERROR("bboxes batch " << _bboxes->batch() << " != input batch " << batch);
         return ErrorCode::INVALID_DATA_SHAPE;
     }
 
@@ -493,10 +476,10 @@ ErrorCode BoxBlur::infer(const nvcv::TensorDataStridedCuda &inData, const nvcv::
         ApplyBoxBlur_RGBA,
     };
 
-    int type_idx = channels - 3;
-    funcs[type_idx](inData, outData, m_context, stream);
+    int       type_idx = channels - 3;
+    ErrorCode status   = funcs[type_idx](inData, outData, m_context, stream);
     m_context->blur_commands.clear(); // Clear the command buffer so next render does not contain previous boxes.
-    return ErrorCode::SUCCESS;
+    return status;
 }
 
 } // namespace nvcv::legacy::cuda_op

@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2024-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -85,15 +85,15 @@ void generateRandTestRGB(T *dst, size_t size, RandEng &eng, bool rgba, bool bga)
     {
         size_t idx = 0;
 
-        for (uint r = 0; r < 3; r++)
+        for (unsigned int r = 0; r < 3; r++)
         {
             const T red = val[r];
 
-            for (uint g = 0; g < 3; g++)
+            for (unsigned int g = 0; g < 3; g++)
             {
                 const T grn = val[g];
 
-                for (uint b = 0; b < 3; b++)
+                for (unsigned int b = 0; b < 3; b++)
                 {
                     const T blu = val[b];
 
@@ -132,7 +132,7 @@ MAKE_RAND_RGB_TEST(double);
 // or generate a tensor of 4 x 2048 x 2048, 16 x 1024 x 1024, 64 x 512 x 512, or 256 x 256 x 256.
 // Note: generates interleaved (non-planar) data.
 template<typename T>
-void generateAllRGB(T *dst, uint wdth, uint hght, uint num, bool rgba, bool bga)
+void generateAllRGB(T *dst, unsigned int wdth, unsigned int hght, unsigned int num, bool rgba, bool bga)
 {
     constexpr T      max   = std::is_floating_point_v<T> ? 1 : cuda::TypeTraits<T>::max;
     constexpr double round = std::is_floating_point_v<T> ? 0 : 0.5;
@@ -141,19 +141,19 @@ void generateAllRGB(T *dst, uint wdth, uint hght, uint num, bool rgba, bool bga)
     const size_t incrH = wdth * (3 + rgba);
     const size_t incrN = hght * incrH;
 
-    uint addB = 0;
+    unsigned int addB = 0;
 
-    for (uint i = 0; i < num; i++)
+    for (unsigned int i = 0; i < num; i++)
     {
         T *img = dst + i * incrN;
 
-        for (uint y = 0; y < hght; y++)
+        for (unsigned int y = 0; y < hght; y++)
         {
             T *row = img + y * incrH;
 
             uint8_t grn = static_cast<uint8_t>(y & 255);
 
-            for (uint x = 0; x < wdth; x++)
+            for (unsigned int x = 0; x < wdth; x++)
             {
                 uint8_t red = static_cast<uint8_t>(x & 255);
                 uint8_t blu = static_cast<uint8_t>(((x >> 8) + addB) & 255);
@@ -174,7 +174,8 @@ void generateAllRGB(T *dst, uint wdth, uint hght, uint num, bool rgba, bool bga)
 }
 
 //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - //
-#define MAKE_ALL_RGB_TEST(T) template void generateAllRGB<T>(T *, uint, uint, uint, bool rgba, bool bga)
+#define MAKE_ALL_RGB_TEST(T) \
+    template void generateAllRGB<T>(T *, unsigned int, unsigned int, unsigned int, bool rgba, bool bga)
 
 MAKE_ALL_RGB_TEST(uint8_t);
 MAKE_ALL_RGB_TEST(uint16_t);
@@ -196,10 +197,10 @@ void generateRandHSV(T *dst, size_t size, RandEng &eng, double minHueMult, doubl
 {
     ASSERT_EQ(size % 3, 0);
 
-    constexpr T      max   = std::is_floating_point_v<T> ? 1 : cuda::TypeTraits<T>::max;
-    constexpr uint   range = (sizeof(T) > 1) ? 360 : (FullRange ? 256 : 180);
-    constexpr double scale = (double)range / 360.0;
-    constexpr double round = std::is_floating_point_v<T> ? 0 : 0.5;
+    constexpr T            max   = std::is_floating_point_v<T> ? 1 : cuda::TypeTraits<T>::max;
+    constexpr unsigned int range = (sizeof(T) > 1) ? 360 : (FullRange ? 256 : 180);
+    constexpr double       scale = (double)range / 360.0;
+    constexpr double       round = std::is_floating_point_v<T> ? 0 : 0.5;
 
     // clang-format off
     if (minHueMult > 1.0) minHueMult = 0.0;
@@ -262,36 +263,37 @@ MAKE_RAND_HSV_TEST(double);
 // or a tensor of 4 x (8*H_range) x 2048, 16 x (4*H_range) x 1024, 64 x (2*H_range) x 512, or 256 x H_range x 256.
 // Note: generates interleaved (non-planar) data.
 template<typename T, bool FullRange>
-void generateAllHSV(T *dst, uint wdth, uint hght, uint num)
+void generateAllHSV(T *dst, unsigned int wdth, unsigned int hght, unsigned int num)
 {
-    constexpr T      max   = std::is_floating_point_v<T> ? 1 : cuda::TypeTraits<T>::max;
-    constexpr uint   range = (sizeof(T) > 1) ? 360 : (FullRange ? 256 : 180);
-    constexpr double scale = (double)range / 360.0;
-    constexpr double norm  = (double)max / 255.0;
-    constexpr double round = std::is_floating_point_v<T> ? 0 : 0.5;
+    constexpr T            max   = std::is_floating_point_v<T> ? 1 : cuda::TypeTraits<T>::max;
+    constexpr unsigned int range = (sizeof(T) > 1) ? 360 : (FullRange ? 256 : 180);
+    constexpr double       scale = (double)range / 360.0;
+    constexpr double       norm  = (double)max / 255.0;
+    constexpr double       round = std::is_floating_point_v<T> ? 0 : 0.5;
 
-    constexpr uint stepV = 1; // Step size for V (value) from one block to the next. 17 is prime, so 256 % (17 * m) will
-                              // always be unique for 0 <= m < 256.
-    const size_t   incrH = wdth * 3;
-    const size_t   incrN = hght * incrH;
+    constexpr unsigned int stepV
+        = 1; // Step size for V (value) from one block to the next. 17 is prime, so 256 % (17 * m) will
+             // always be unique for 0 <= m < 256.
+    const size_t incrH = wdth * 3;
+    const size_t incrN = hght * incrH;
 
-    uint addV = 0;
+    unsigned int addV = 0;
 
-    for (uint i = 0; i < num; i++)
+    for (unsigned int i = 0; i < num; i++)
     {
         T *img = dst + i * incrN;
 
-        for (uint y = 0; y < hght; y++)
+        for (unsigned int y = 0; y < hght; y++)
         {
             T *row = img + y * incrH;
 
             uint8_t S = static_cast<uint8_t>(y & 255);
 
             // clang-format off
-            for (uint x = 0; x < wdth; x++)
+            for (unsigned int x = 0; x < wdth; x++)
             {
                 uint8_t H = static_cast<uint8_t>(x % range);
-                uint8_t V = static_cast<uint8_t>((((uint)(x / range) + addV) * stepV) & 255);
+                uint8_t V = static_cast<uint8_t>((((unsigned int)(x / range) + addV) * stepV) & 255);
 
                 *row++ = static_cast<T>(H * scale + round);
                 *row++ = static_cast<T>(S * norm  + round);
@@ -306,7 +308,7 @@ void generateAllHSV(T *dst, uint wdth, uint hght, uint num)
 //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - //
 // Restricted range hue (FullRange = false): values between [0-180). Applies only to uint8_t, but still need to
 // instantiate all the types.
-#define MAKE_ALL_HSV_TEST(T) template void generateAllHSV<T, false>(T *, uint, uint, uint)
+#define MAKE_ALL_HSV_TEST(T) template void generateAllHSV<T, false>(T *, unsigned int, unsigned int, unsigned int)
 
 MAKE_ALL_HSV_TEST(uint8_t);
 MAKE_ALL_HSV_TEST(uint16_t);
@@ -319,7 +321,7 @@ MAKE_ALL_HSV_TEST(double);
 //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - //
 // Full range hue (FullRange = false): values between [0-256). Applies only to uint8_t, but still need to
 // instantiate all the types.
-#define MAKE_ALL_HSV_TEST(T) template void generateAllHSV<T, true>(T *, uint, uint, uint)
+#define MAKE_ALL_HSV_TEST(T) template void generateAllHSV<T, true>(T *, unsigned int, unsigned int, unsigned int)
 
 MAKE_ALL_HSV_TEST(uint8_t);
 MAKE_ALL_HSV_TEST(uint16_t);

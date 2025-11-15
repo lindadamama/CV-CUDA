@@ -1,4 +1,4 @@
-/* Copyright (c) 2021-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+/* Copyright (c) 2021-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  *
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
  * SPDX-License-Identifier: Apache-2.0
@@ -156,7 +156,7 @@ ErrorCode MorphFilter2D(const TensorDataStridedCuda &inData, const TensorDataStr
     {
 #define NVCV_MORPH_CASE(BORDERTYPE) \
     case BORDERTYPE:                \
-        return MorphFilter2DCaller<D, BORDERTYPE>(inData, outData, morph_type, kernelSize, kernelAnchor, stream);
+        return MorphFilter2DCaller<D, BORDERTYPE>(inData, outData, morph_type, kernelSize, kernelAnchor, stream)
 
         NVCV_MORPH_CASE(NVCV_BORDER_CONSTANT);
         NVCV_MORPH_CASE(NVCV_BORDER_REPLICATE);

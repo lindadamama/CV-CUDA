@@ -1,4 +1,4 @@
-/* Copyright (c) 2021-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+/* Copyright (c) 2021-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  *
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
  * SPDX-License-Identifier: Apache-2.0
@@ -91,6 +91,7 @@ void eraseCaller(const nvcv::TensorDataStridedCuda &imgs, const nvcv::TensorData
                                       seed);
 }
 
+namespace {
 struct MaxWH
 {
     __device__ __forceinline__ int3 operator()(const int3 &a, const int3 &b) const
@@ -98,6 +99,7 @@ struct MaxWH
         return int3{max(a.x, b.x), max(a.y, b.y), 0};
     }
 };
+} // namespace
 
 namespace nvcv::legacy::cuda_op {
 

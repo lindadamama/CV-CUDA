@@ -1,6 +1,6 @@
 #!/bin/bash -e
 
-# SPDX-FileCopyrightText: Copyright (c) 2022-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2022-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -52,34 +52,12 @@ if [[ $# -ge 1 ]]; then
     esac
 fi
 
-# Store additional cmake args user might have passed
-user_args="$*"
-
 # Create build directory
 build_dir=${build_dir:-"build-${build_type:0:3}"}
 mkdir -p "$build_dir"
 
-# Set build configuration
-cmake_args="-DBUILD_TESTS=1"
-
-if [[ "$ENABLE_SANITIZER" == 'true' || "$ENABLE_SANITIZER" == '1' ]]; then
-    cmake_args="$cmake_args -DENABLE_SANITIZER=ON"
-else
-    cmake_args="$cmake_args -DENABLE_SANITIZER=OFF"
-fi
-
-# Python build configuration
-if [[ "$ENABLE_PYTHON" == '0' || "$ENABLE_PYTHON" == 'no' ]]; then
-    cmake_args="$cmake_args -DBUILD_PYTHON=0"
-else
-    cmake_args="$cmake_args -DBUILD_PYTHON=1"
-
-    # Additional python versions
-    if [ "$PYTHON_VERSIONS" ]; then
-        cmake_args="$cmake_args -DPYTHON_VERSIONS=$PYTHON_VERSIONS"
-    fi
-fi
-
+# Initialize cmake_args with any additional args passed from command line
+cmake_args="$*"
 
 # Specific configurations for build type
 case $build_type in
@@ -92,8 +70,8 @@ case $build_type in
 esac
 
 # Configure build toolchain
-CC=${CC:-$(find /usr/bin/gcc-11* | sort -rV | head -n 1)}
-CXX=${CXX:-$(find /usr/bin/g++-11* | sort -rV | head -n 1)}
+CC=${CC:-$(find /usr/bin/gcc-1* | sort -rV | head -n 1)}
+CXX=${CXX:-$(find /usr/bin/g++-1* | sort -rV | head -n 1)}
 cmake_args="$cmake_args -DCMAKE_C_COMPILER=$CC -DCMAKE_CXX_COMPILER=$CXX"
 
 # Use ninja if available
@@ -109,17 +87,13 @@ if which ccache > /dev/null; then
     cmake_args="$cmake_args -DCCACHE_STATSLOG=${ccache_stats}"
 fi
 
-# Configure CUDA
-CUDA_MAJOR=${CUDA_MAJOR:-11}
-for nvcc_path in /usr/local/cuda-$CUDA_MAJOR/bin/nvcc /usr/local/cuda/bin/nvcc; do
-    if [ -x "$nvcc_path" ]; then
-        cmake_args="$cmake_args -DCMAKE_CUDA_COMPILER=$nvcc_path"
-        break
-    fi
-done
+# Configure CUDA - use default installation
+if [ -x "/usr/local/cuda/bin/nvcc" ]; then
+    cmake_args="$cmake_args -DCMAKE_CUDA_COMPILER=/usr/local/cuda/bin/nvcc"
+fi
 
 # Create build tree and build
-cmake -B "$build_dir" "$source_dir" $cmake_args $user_args
+cmake -B "$build_dir" "$source_dir" $cmake_args
 cmake --build "$build_dir" -- -j$num_jobs
 
 # Show ccache status

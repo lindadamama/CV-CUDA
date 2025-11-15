@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2023-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2023-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -307,7 +307,14 @@ void RunCropFlipNormalizeReformat(cudaStream_t stream, const nvcv::ImageBatchVar
                                     RunCropFlipNormalizeReformat<T_Src, T_Dst, NVCV_BORDER_WRAP>,
                                     RunCropFlipNormalizeReformat<T_Src, T_Dst, NVCV_BORDER_REFLECT101>};
 
-    const func_t func = funcs[(int)borderMode];
+    // Validate array index to prevent buffer overrun
+    int border_index = (int)borderMode;
+    if (border_index < 0 || border_index >= 5)
+    {
+        throw nvcv::Exception(nvcv::Status::ERROR_INVALID_ARGUMENT, "Unsupported border mode");
+    }
+
+    const func_t func = funcs[border_index];
     if (func == 0)
     {
         throw nvcv::Exception(nvcv::Status::ERROR_INVALID_ARGUMENT, "Unsupported border mode");
@@ -349,7 +356,15 @@ void RunCropFlipNormalizeReformat(cudaStream_t stream, const nvcv::ImageBatchVar
                               "Output DataKind must be unsigned, signed or float");
     }
 
-    const func_t func = funcs[(int)data_kind][(bpc[0] >> 3) - 1];
+    // Validate array indices to prevent buffer overrun
+    int kind_index = (int)data_kind;
+    int size_index = (bpc[0] >> 3) - 1;
+    if (kind_index < 0 || kind_index >= 3 || size_index < 0 || size_index >= 4)
+    {
+        throw nvcv::Exception(nvcv::Status::ERROR_INVALID_ARGUMENT, "Unsupported output data type");
+    }
+
+    const func_t func = funcs[kind_index][size_index];
     if (func == 0)
     {
         throw nvcv::Exception(nvcv::Status::ERROR_INVALID_ARGUMENT, "Unsupported output data type");
@@ -457,7 +472,15 @@ void CropFlipNormalizeReformat::operator()(cudaStream_t stream, const nvcv::Imag
         {                                          0,                                            0, 0, RunCropFlipNormalizeReformat<float>}
     };
 
-    const func_t func = funcs[(int)data_kind][(bpc[0] >> 3) - 1];
+    // Validate array indices to prevent buffer overrun
+    int kind_index = (int)data_kind;
+    int size_index = (bpc[0] >> 3) - 1;
+    if (kind_index < 0 || kind_index >= 3 || size_index < 0 || size_index >= 4)
+    {
+        throw nvcv::Exception(nvcv::Status::ERROR_INVALID_ARGUMENT, "Unsupported input data type");
+    }
+
+    const func_t func = funcs[kind_index][size_index];
     if (func == 0)
     {
         throw nvcv::Exception(nvcv::Status::ERROR_INVALID_ARGUMENT, "Unsupported input data type");

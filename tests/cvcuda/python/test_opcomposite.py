@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2022-2023 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2022-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,6 +14,7 @@
 # limitations under the License.
 
 import cvcuda
+
 import pytest as t
 import numpy as np
 import cvcuda_util as util
@@ -108,7 +109,7 @@ def test_op_compositevarshape(nimages, max_size, outChannels):
     assert len(out) == len(foreground)
     assert out.capacity == foreground.capacity
 
-    stream = cvcuda.cuda.Stream()
+    stream = cvcuda.Stream()
 
     if outChannels == 3:
         out = util.clone_image_batch(foreground)

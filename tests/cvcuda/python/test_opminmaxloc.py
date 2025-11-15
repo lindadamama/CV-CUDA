@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2023 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2023-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,10 +14,10 @@
 # limitations under the License.
 
 import cvcuda
+
 import pytest as t
 import numpy as np
 import cvcuda_util as util
-
 
 RNG = np.random.default_rng(0)
 
@@ -242,7 +242,7 @@ def test_opminmaxloc_varshape_api(num_images, img_format, max_size):
     for ret, out in zip(rets, outs):
         assert ret is out
 
-    stream = cvcuda.cuda.Stream()
+    stream = cvcuda.Stream()
 
     outs = cvcuda.min_loc(src=src, max_locations=10, stream=stream)
     for out in outs:
@@ -311,7 +311,7 @@ def test_opminmaxloc_content(input_type):
             for max_loc in l_max_loc:
                 a_src[i, max_loc[1] - i, max_loc[0] - i, 0] = 255
 
-        src = util.to_nvcv_tensor(a_src, "NHWC")
+        src = util.to_cvcuda_tensor(a_src, "NHWC")
 
     elif input_type == "image_batch":
         src = cvcuda.ImageBatchVarShape(n_img)
@@ -323,7 +323,7 @@ def test_opminmaxloc_content(input_type):
             for max_loc in l_max_loc:
                 a_img[max_loc[1] - i, max_loc[0] - i, 0] = 255
 
-            src.pushback(util.to_nvcv_image(a_img))
+            src.pushback(util.to_cvcuda_image(a_img))
 
     outputs = cvcuda.min_max_loc(src, max_locations=len(l_min_loc))
 

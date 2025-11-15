@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2022-2023 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2022-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -376,4 +376,139 @@ TEST_P(OpComposite, varshape_correct_output)
 
         EXPECT_EQ(goldVec, testVec);
     }
+}
+
+// clang-format off
+NVCV_TEST_SUITE_P(OpComposite_Negative, test::ValueList<nvcv::ImageFormat, nvcv::ImageFormat, nvcv::ImageFormat, nvcv::ImageFormat, bool>
+    {
+        // image format
+        {nvcv::FMT_RGB8p, nvcv::FMT_RGB8, nvcv::FMT_U8, nvcv::FMT_RGB8, false},
+        {nvcv::FMT_RGB8, nvcv::FMT_RGB8p, nvcv::FMT_U8, nvcv::FMT_RGB8, false},
+        {nvcv::FMT_RGB8, nvcv::FMT_RGB8, nvcv::FMT_U8, nvcv::FMT_RGB8p, false},
+        {nvcv::FMT_RGB8p, nvcv::FMT_RGB8p, nvcv::FMT_RGB8p, nvcv::FMT_RGB8p, false},
+        {nvcv::FMT_RGB8, nvcv::FMT_RGB8, nvcv::FMT_RGB8, nvcv::FMT_RGB8, false},
+        // data type
+        {nvcv::FMT_RGBf16, nvcv::FMT_RGB8, nvcv::FMT_U8, nvcv::FMT_RGB8, false},
+        {nvcv::FMT_RGB8, nvcv::FMT_RGBf16, nvcv::FMT_U8, nvcv::FMT_RGB8, false},
+        {nvcv::FMT_RGB8, nvcv::FMT_RGB8, nvcv::FMT_F16, nvcv::FMT_RGB8, false},
+        {nvcv::FMT_RGB8, nvcv::FMT_RGB8, nvcv::FMT_U8, nvcv::FMT_RGBf16, false},
+        // different format
+        {nvcv::FMT_RGB8, nvcv::FMT_RGB8, nvcv::FMT_U8, nvcv::FMT_RGB8, true},
+    });
+
+// clang-format on
+
+TEST(OpComposite_Negative, createWithNullHandle)
+{
+    EXPECT_EQ(NVCV_ERROR_INVALID_ARGUMENT, cvcudaCompositeCreate(nullptr));
+}
+
+TEST_P(OpComposite_Negative, invalid_parameters)
+{
+    cudaStream_t stream;
+    EXPECT_EQ(cudaSuccess, cudaStreamCreate(&stream));
+    int inWidth        = 24;
+    int inHeight       = 24;
+    int numberOfImages = 3;
+    int outWidth       = inWidth;
+    int outHeight      = inHeight;
+
+    nvcv::ImageFormat foregroundFormat = GetParamValue<0>();
+    nvcv::ImageFormat backgroundFormat = GetParamValue<1>();
+    nvcv::ImageFormat fgMaskFormat     = GetParamValue<2>();
+    nvcv::ImageFormat outFormat        = GetParamValue<3>();
+    bool              isDiffFormatTest = GetParamValue<4>();
+
+    if (isDiffFormatTest)
+    {
+        GTEST_SKIP() << "Skipping diff format test for image input";
+    }
+
+    nvcv::Tensor foregroundImg(numberOfImages, {inWidth, inHeight}, foregroundFormat);
+    nvcv::Tensor backgroundImg(numberOfImages, {inWidth, inHeight}, backgroundFormat);
+    nvcv::Tensor fgMaskImg(numberOfImages, {inWidth, inHeight}, fgMaskFormat);
+    nvcv::Tensor outImg(numberOfImages, {outWidth, outHeight}, outFormat);
+
+    // run operator
+    cvcuda::Composite compositeOp;
+
+    EXPECT_EQ(NVCV_ERROR_INVALID_ARGUMENT,
+              nvcv::ProtectCall([&] { compositeOp(stream, foregroundImg, backgroundImg, fgMaskImg, outImg); }));
+
+    EXPECT_EQ(cudaSuccess, cudaStreamSynchronize(stream));
+    EXPECT_EQ(cudaSuccess, cudaStreamDestroy(stream));
+}
+
+TEST_P(OpComposite_Negative, varshape_invalid_parameters)
+{
+    cudaStream_t stream;
+    EXPECT_EQ(cudaSuccess, cudaStreamCreate(&stream));
+
+    int inWidth        = 24;
+    int inHeight       = 24;
+    int numberOfImages = 3;
+
+    nvcv::ImageFormat foregroundFormat = GetParamValue<0>();
+    nvcv::ImageFormat backgroundFormat = GetParamValue<1>();
+    nvcv::ImageFormat fgMaskFormat     = GetParamValue<2>();
+    nvcv::ImageFormat outFormat        = GetParamValue<3>();
+    bool              isDiffFormatTest = GetParamValue<4>();
+
+    std::default_random_engine rng;
+
+    // Create input varshape
+
+    std::uniform_int_distribution<int> udistWidth(inWidth * 0.8, inWidth * 1.1);
+    std::uniform_int_distribution<int> udistHeight(inHeight * 0.8, inHeight * 1.1);
+
+    std::vector<nvcv::Image> imgForeground;
+    std::vector<nvcv::Image> imgBackground;
+    std::vector<nvcv::Image> imgFgMask;
+    std::vector<nvcv::Image> imgOut;
+
+    for (int i = 0; i < numberOfImages - 1; i++)
+    {
+        nvcv::Size2D size{udistWidth(rng), udistHeight(rng)};
+
+        imgForeground.emplace_back(size, foregroundFormat);
+        imgBackground.emplace_back(size, backgroundFormat);
+        imgFgMask.emplace_back(size, fgMaskFormat);
+        imgOut.emplace_back(size, outFormat);
+    }
+
+    if (isDiffFormatTest)
+    {
+        nvcv::Size2D size{udistWidth(rng), udistHeight(rng)};
+        imgForeground.emplace_back(size, nvcv::FMT_U8);
+        imgBackground.emplace_back(size, nvcv::FMT_U8);
+        imgFgMask.emplace_back(size, nvcv::FMT_RGB8);
+        imgOut.emplace_back(size, nvcv::FMT_U8);
+    }
+    else
+    {
+        nvcv::Size2D size{udistWidth(rng), udistHeight(rng)};
+        imgForeground.emplace_back(size, foregroundFormat);
+        imgBackground.emplace_back(size, backgroundFormat);
+        imgFgMask.emplace_back(size, fgMaskFormat);
+        imgOut.emplace_back(size, outFormat);
+    }
+
+    nvcv::ImageBatchVarShape batchForeground(numberOfImages);
+    nvcv::ImageBatchVarShape batchBackground(numberOfImages);
+    nvcv::ImageBatchVarShape batchFgMask(numberOfImages);
+    nvcv::ImageBatchVarShape batchOutput(numberOfImages);
+
+    batchForeground.pushBack(imgForeground.begin(), imgForeground.end());
+    batchBackground.pushBack(imgBackground.begin(), imgBackground.end());
+    batchFgMask.pushBack(imgFgMask.begin(), imgFgMask.end());
+    batchOutput.pushBack(imgOut.begin(), imgOut.end());
+
+    // Run operator
+    cvcuda::Composite compositeOp;
+    EXPECT_EQ(
+        NVCV_ERROR_INVALID_ARGUMENT,
+        nvcv::ProtectCall([&] { compositeOp(stream, batchForeground, batchBackground, batchFgMask, batchOutput); }));
+
+    EXPECT_EQ(cudaSuccess, cudaStreamSynchronize(stream));
+    EXPECT_EQ(cudaSuccess, cudaStreamDestroy(stream));
 }

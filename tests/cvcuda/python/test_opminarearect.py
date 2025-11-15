@@ -15,6 +15,7 @@
 
 import torch
 import cvcuda
+
 import pytest as t
 from torch.nn.utils.rnn import pad_sequence
 
@@ -175,7 +176,7 @@ def test_op_minarearect(contourData, numPointsInContour, openCvRes):
     gold_torch, _ = torch.sort(gold_torch.reshape(batchSize, -1, 2), dim=1)
     assert (gold_torch.cuda() - result_torch.cuda() < 5.0).all()
 
-    stream = cvcuda.cuda.Stream()
+    stream = cvcuda.Stream()
     out = cvcuda.Tensor(gold_cvcuda.shape, gold_cvcuda.dtype, gold_cvcuda.layout)
     tmp = cvcuda.minarearect_into(
         out, src_cvcuda, pointNumInContour_cvcuda, src_torch.shape[0]

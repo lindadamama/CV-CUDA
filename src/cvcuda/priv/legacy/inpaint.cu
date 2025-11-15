@@ -1,4 +1,4 @@
-/* Copyright (c) 2021-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+/* Copyright (c) 2021-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  *
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
  * SPDX-License-Identifier: Apache-2.0
@@ -628,7 +628,7 @@ ErrorCode Inpaint::infer(const TensorDataStridedCuda &inData, const TensorDataSt
 
     if (!(in_data_type == kCV_8U || in_data_type == kCV_32S || in_data_type == kCV_32F))
     {
-        LOG_ERROR("Invalid DataType " << in_data_type);
+        LOG_ERROR("Invalid input DataType " << in_data_type);
         return ErrorCode::INVALID_DATA_TYPE;
     }
 
@@ -638,7 +638,7 @@ ErrorCode Inpaint::infer(const TensorDataStridedCuda &inData, const TensorDataSt
 
     if (in_channels > 4)
     {
-        LOG_ERROR("Invalid channel number " << in_channels);
+        LOG_ERROR("Invalid input channel number " << in_channels);
         return ErrorCode::INVALID_DATA_SHAPE;
     }
 
@@ -662,7 +662,7 @@ ErrorCode Inpaint::infer(const TensorDataStridedCuda &inData, const TensorDataSt
 
     if (out_channels != in_channels)
     {
-        LOG_ERROR("Invalid channel number " << out_channels);
+        LOG_ERROR("input and output channel number must be equal, but got " << in_channels << " and " << out_channels);
         return ErrorCode::INVALID_DATA_SHAPE;
     }
 

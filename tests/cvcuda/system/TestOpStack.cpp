@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2023-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2023-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -187,4 +187,60 @@ TEST_P(OpStack, test_CHW_tensors)
         // Compare the computed histogram with the output histogram
         ASSERT_EQ(inputVecs[i], outSample);
     }
+}
+
+TEST(OpStack_Negative, create_with_null_handle)
+{
+    EXPECT_EQ(NVCV_ERROR_INVALID_ARGUMENT, cvcudaStackCreate(nullptr));
+}
+
+TEST(OpStack_Negative, invalid_parameters)
+{
+    cudaStream_t stream;
+    ASSERT_EQ(cudaSuccess, cudaStreamCreate(&stream));
+
+    int               width           = 24;
+    int               height          = 24;
+    nvcv::ImageFormat format          = nvcv::FMT_U8;
+    int               numberOfTensors = 10;
+
+    int numChannels   = format.numChannels();
+    int bytesPerPixel = 0;
+
+    for (int32_t i = 0; i < numChannels; i++)
+    {
+        bytesPerPixel += format.bitsPerChannel()[i] / 8;
+    }
+
+    // generate the output tensor to contain all of the input tensors
+    auto              reqs = nvcv::TensorBatch::CalcRequirements(numberOfTensors);
+    nvcv::TensorBatch inTensorBatch(reqs);
+
+    for (int i = 0; i < numberOfTensors; ++i)
+    {
+        nvcv::Tensor inTensor = nvcv::util::CreateTensor(1, width, height, format);
+        inTensorBatch.pushBack(inTensor);
+    }
+
+    cvcuda::Stack op;
+
+    nvcv::Tensor invalidRankOutTensor(
+        {
+            {height, width},
+            "HW"
+    },
+        nvcv::TYPE_U8);
+
+    nvcv::Tensor smallOutTensor(numberOfTensors - 1, {width, height}, format);
+    nvcv::Tensor misMatchOutTensor(numberOfTensors, {width - 1, height}, format);
+    // run operator
+
+    EXPECT_EQ(NVCV_ERROR_INVALID_ARGUMENT, nvcv::ProtectCall([&] { op(stream, inTensorBatch, invalidRankOutTensor); }));
+
+    EXPECT_EQ(NVCV_ERROR_INVALID_ARGUMENT, nvcv::ProtectCall([&] { op(stream, inTensorBatch, smallOutTensor); }));
+
+    EXPECT_EQ(NVCV_ERROR_INVALID_ARGUMENT, nvcv::ProtectCall([&] { op(stream, inTensorBatch, misMatchOutTensor); }));
+
+    ASSERT_EQ(cudaSuccess, cudaStreamSynchronize(stream));
+    ASSERT_EQ(cudaSuccess, cudaStreamDestroy(stream));
 }

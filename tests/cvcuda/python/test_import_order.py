@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2023 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2023-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,11 +15,12 @@
 
 # Import order is important,
 # torch must be loaded correctly even if cvcuda was imported first
-import cvcuda
+import cvcuda  # noqa: F401
 import torch
 import numpy as np
 
 
 def test_import_cvcuda_first_works():
     torch.as_tensor(np.ndarray((4, 6), dtype=np.uint8), device="cuda")
+
     cvcuda.Tensor((4, 6), dtype=np.uint8)

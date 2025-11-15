@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2024-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -117,7 +117,7 @@ constexpr BT Alpha = std::is_floating_point_v<BT> ? 1 : cuda::TypeTraits<BT>::ma
 template<typename T, bool AlphaOnly>
 static void convertRGBtoBGR(T *dst, const T *src, size_t numPixels, bool srcRGBA, bool dstRGBA)
 {
-    const uint incr = 3 + srcRGBA;
+    const unsigned int incr = 3 + srcRGBA;
 
     for (size_t i = 0; i < numPixels; i++, src += incr)
     {
@@ -214,7 +214,7 @@ void convertGrayToRGB(T *dst, const T *src, size_t numPixels, bool rgba)
 
         // clang-format off
         *dst++ = val;  *dst++ = val;  *dst++ = val;
-        if (rgba) *dst++ = Alpha<T>;
+        if (rgba) *dst++ = val; // align with gpu code gray_to_bgr_nhwc
         // clang-format on
     }
 }
@@ -387,9 +387,9 @@ void convertHSVtoRGB(T *dst, const T *src, size_t numPixels, bool rgba, bool bgr
     constexpr double norm  = std::is_floating_point_v<T> ? 1 : cuda::TypeTraits<T>::max;
     constexpr double round = std::is_floating_point_v<T> ? 0 : 0.5;
 
-    constexpr uint mapR[6] = {0, 2, 1, 1, 3, 0};
-    constexpr uint mapG[6] = {3, 0, 0, 2, 1, 1};
-    constexpr uint mapB[6] = {1, 1, 3, 0, 0, 2};
+    constexpr unsigned int mapR[6] = {0, 2, 1, 1, 3, 0};
+    constexpr unsigned int mapG[6] = {3, 0, 0, 2, 1, 1};
+    constexpr unsigned int mapB[6] = {1, 1, 3, 0, 0, 2};
 
     for (size_t i = 0; i < numPixels; i++)
     {
@@ -410,9 +410,9 @@ void convertHSVtoRGB(T *dst, const T *src, size_t numPixels, bool rgba, bool bgr
                         V * (1 - S * H),
                         V * (1 - S * (1 - H))};
 
-        uint r = mapR[idx];
-        uint g = mapG[idx];
-        uint b = mapB[idx];
+        unsigned int r = mapR[idx];
+        unsigned int g = mapG[idx];
+        unsigned int b = mapB[idx];
 
         if (bgr) std::swap(r, b);
         *dst++ = static_cast<T>(val[r] * norm + round);
@@ -554,7 +554,8 @@ MAKE_YUVtoRGB(double);
 
 //-==================================================================================================================-//
 template<typename T>
-void convertRGBtoYUV_420(T *dst, const T *src, uint wdth, uint hght, uint numImgs, bool rgba, bool bgr, bool yvu)
+void convertRGBtoYUV_420(T *dst, const T *src, unsigned int wdth, unsigned int hght, unsigned int numImgs, bool rgba,
+                         bool bgr, bool yvu)
 {
     // Ensure both width and height are multiples of 2 since we're processing 2x2 blocks.
     assert(wdth % 2 == 0 && hght % 2 == 0);
@@ -564,7 +565,7 @@ void convertRGBtoYUV_420(T *dst, const T *src, uint wdth, uint hght, uint numImg
     const size_t incrSrc   = imgPixels * incrPix;
     const size_t incrDst   = imgPixels * 3 / 2;
 
-    for (uint n = 0; n < numImgs; n++, src += incrSrc, dst += incrDst)
+    for (unsigned int n = 0; n < numImgs; n++, src += incrSrc, dst += incrDst)
     {
         T *y = dst;
         T *u = y + imgPixels;
@@ -576,9 +577,9 @@ void convertRGBtoYUV_420(T *dst, const T *src, uint wdth, uint hght, uint numImg
         if (yvu) std::swap(u, v);
         // clang-format on
 
-        for (uint h = 0; h < hght; h++)
+        for (unsigned int h = 0; h < hght; h++)
         {
-            for (uint w = 0; w < wdth; w++, rgb += incrPix)
+            for (unsigned int w = 0; w < wdth; w++, rgb += incrPix)
             {
                 T R = rgb[0];
                 T G = rgb[1];
@@ -606,8 +607,8 @@ void convertRGBtoYUV_420(T *dst, const T *src, uint wdth, uint hght, uint numImg
 
 //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - //
 template<typename T>
-void convertRGBtoYUV_420(vector<T> &dst, const vector<T> &src, uint wdth, uint hght, uint numImgs, bool rgba, bool bgr,
-                         bool yvu)
+void convertRGBtoYUV_420(vector<T> &dst, const vector<T> &src, unsigned int wdth, unsigned int hght,
+                         unsigned int numImgs, bool rgba, bool bgr, bool yvu)
 {
     // Ensure input data has sets of 3 or 4 (RGB/BGA with or w/o alpha) values for the given width and height and batch size.
     assert(src.size() == (size_t)numImgs * (size_t)hght * (size_t)wdth * (size_t)(3 + rgba));
@@ -619,8 +620,9 @@ void convertRGBtoYUV_420(vector<T> &dst, const vector<T> &src, uint wdth, uint h
 }
 
 //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - //
-#define MAKE_RGBtoYUV(T) \
-    template void convertRGBtoYUV_420<T>(vector<T> &, const vector<T> &, uint, uint, uint, bool, bool, bool)
+#define MAKE_RGBtoYUV(T)                                                                                           \
+    template void convertRGBtoYUV_420<T>(vector<T> &, const vector<T> &, unsigned int, unsigned int, unsigned int, \
+                                         bool, bool, bool)
 
 MAKE_RGBtoYUV(uint8_t);
 MAKE_RGBtoYUV(uint16_t);
@@ -634,7 +636,8 @@ MAKE_RGBtoYUV(double);
 
 //-==================================================================================================================-//
 template<typename T>
-void convertYUVtoRGB_420(T *dst, const T *src, uint wdth, uint hght, uint numImgs, bool rgba, bool bgr, bool yvu)
+void convertYUVtoRGB_420(T *dst, const T *src, unsigned int wdth, unsigned int hght, unsigned int numImgs, bool rgba,
+                         bool bgr, bool yvu)
 {
     // Ensure both width and height are multiples of 2 since we're processing 2x2 blocks.
     assert(wdth % 2 == 0 && hght % 2 == 0);
@@ -643,13 +646,13 @@ void convertYUVtoRGB_420(T *dst, const T *src, uint wdth, uint hght, uint numImg
     const size_t incrSrc   = imgPixels * 3 / 2;
     const size_t incrDst   = imgPixels * (3 + rgba);
 
-    for (uint n = 0; n < numImgs; n++, src += incrSrc, dst += incrDst)
+    for (unsigned int n = 0; n < numImgs; n++, src += incrSrc, dst += incrDst)
     {
         T *rgb = dst;
 
         const T *y = src;
 
-        for (uint h = 0; h < hght; h++)
+        for (unsigned int h = 0; h < hght; h++)
         {
             // clang-format off
             // NOTE: when computing subsampled row index, h needs to be integer divided by 4 before multiplying by width.
@@ -659,7 +662,7 @@ void convertYUVtoRGB_420(T *dst, const T *src, uint wdth, uint hght, uint numImg
             if (yvu) std::swap(u, v);
             // clang-format on
 
-            for (uint w = 0; w < wdth; w++)
+            for (unsigned int w = 0; w < wdth; w++)
             {
                 double Y = *y++;
                 double U = *u;
@@ -691,8 +694,8 @@ void convertYUVtoRGB_420(T *dst, const T *src, uint wdth, uint hght, uint numImg
 
 //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - //
 template<typename T>
-void convertYUVtoRGB_420(vector<T> &dst, const vector<T> &src, uint wdth, uint hght, uint numImgs, bool rgba, bool bgr,
-                         bool yvu)
+void convertYUVtoRGB_420(vector<T> &dst, const vector<T> &src, unsigned int wdth, unsigned int hght,
+                         unsigned int numImgs, bool rgba, bool bgr, bool yvu)
 {
     // Ensure output data has sets of 3 or 4 (RGB/BGA with or w/o alpha) values for the given width and height and batch size.
     assert(dst.size() == (size_t)numImgs * (size_t)hght * (size_t)wdth * (size_t)(3 + rgba));
@@ -704,8 +707,9 @@ void convertYUVtoRGB_420(vector<T> &dst, const vector<T> &src, uint wdth, uint h
 }
 
 //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - //
-#define MAKE_NV12toRGB(T) \
-    template void convertYUVtoRGB_420<T>(vector<T> &, const vector<T> &, uint, uint, uint, bool, bool, bool)
+#define MAKE_NV12toRGB(T)                                                                                          \
+    template void convertYUVtoRGB_420<T>(vector<T> &, const vector<T> &, unsigned int, unsigned int, unsigned int, \
+                                         bool, bool, bool)
 
 MAKE_NV12toRGB(uint8_t);
 MAKE_NV12toRGB(uint16_t);
@@ -719,7 +723,7 @@ MAKE_NV12toRGB(double);
 
 //-==================================================================================================================-//
 template<typename T>
-void convertYUVtoGray_420(T *dst, const T *src, uint wdth, uint hght, uint numImgs)
+void convertYUVtoGray_420(T *dst, const T *src, unsigned int wdth, unsigned int hght, unsigned int numImgs)
 {
     // Ensure both width and height are multiples of 2.
     assert(wdth % 2 == 0 && hght % 2 == 0);
@@ -727,7 +731,7 @@ void convertYUVtoGray_420(T *dst, const T *src, uint wdth, uint hght, uint numIm
     const size_t imgPixels = (size_t)hght * (size_t)wdth;
     const size_t incrSrc   = imgPixels * 3 / 2;
 
-    for (uint n = 0; n < numImgs; n++, src += incrSrc, dst += imgPixels)
+    for (unsigned int n = 0; n < numImgs; n++, src += incrSrc, dst += imgPixels)
     {
         std::memcpy(dst, src, imgPixels * sizeof(T)); // Copy Y plane of each image to destination tensor.
     }
@@ -735,7 +739,8 @@ void convertYUVtoGray_420(T *dst, const T *src, uint wdth, uint hght, uint numIm
 
 //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - //
 template<typename T>
-void convertYUVtoGray_420(vector<T> &dst, const vector<T> &src, uint wdth, uint hght, uint numImgs)
+void convertYUVtoGray_420(vector<T> &dst, const vector<T> &src, unsigned int wdth, unsigned int hght,
+                          unsigned int numImgs)
 {
     // Ensure output data has sets of 3 or 4 (RGB/BGA with or w/o alpha) values for the given width and height and batch size.
     assert(dst.size() == (size_t)numImgs * (size_t)hght * (size_t)wdth);
@@ -747,7 +752,8 @@ void convertYUVtoGray_420(vector<T> &dst, const vector<T> &src, uint wdth, uint 
 }
 
 //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - //
-#define MAKE_YUVtoGray(T) template void convertYUVtoGray_420<T>(vector<T> &, const vector<T> &, uint, uint, uint)
+#define MAKE_YUVtoGray(T) \
+    template void convertYUVtoGray_420<T>(vector<T> &, const vector<T> &, unsigned int, unsigned int, unsigned int)
 
 MAKE_YUVtoGray(uint8_t);
 MAKE_YUVtoGray(uint16_t);
@@ -761,7 +767,8 @@ MAKE_YUVtoGray(double);
 
 //-==================================================================================================================-//
 template<typename T>
-void convertRGBtoNV12(T *dst, const T *src, uint wdth, uint hght, uint numImgs, bool rgba, bool bgr, bool yvu)
+void convertRGBtoNV12(T *dst, const T *src, unsigned int wdth, unsigned int hght, unsigned int numImgs, bool rgba,
+                      bool bgr, bool yvu)
 {
     // Ensure both width and height are multiples of 2 since we're processing 2x2 blocks.
     assert(wdth % 2 == 0 && hght % 2 == 0);
@@ -771,16 +778,16 @@ void convertRGBtoNV12(T *dst, const T *src, uint wdth, uint hght, uint numImgs, 
     const size_t incrSrc   = imgPixels * incrPix;
     const size_t incrDst   = imgPixels * 3 / 2;
 
-    for (uint n = 0; n < numImgs; n++, src += incrSrc, dst += incrDst)
+    for (unsigned int n = 0; n < numImgs; n++, src += incrSrc, dst += incrDst)
     {
         T *y  = dst;
         T *uv = dst + imgPixels;
 
         const T *rgb = src;
 
-        for (uint h = 0; h < hght; h++)
+        for (unsigned int h = 0; h < hght; h++)
         {
-            for (uint w = 0; w < wdth; w++, rgb += incrPix)
+            for (unsigned int w = 0; w < wdth; w++, rgb += incrPix)
             {
                 T R = rgb[0];
                 T G = rgb[1];
@@ -811,8 +818,8 @@ void convertRGBtoNV12(T *dst, const T *src, uint wdth, uint hght, uint numImgs, 
 
 //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - //
 template<typename T>
-void convertRGBtoNV12(vector<T> &dst, const vector<T> &src, uint wdth, uint hght, uint numImgs, bool rgba, bool bgr,
-                      bool yvu)
+void convertRGBtoNV12(vector<T> &dst, const vector<T> &src, unsigned int wdth, unsigned int hght, unsigned int numImgs,
+                      bool rgba, bool bgr, bool yvu)
 {
     // Ensure input data has sets of 3 or 4 (RGB/BGA with or w/o alpha) values for the given width and height and batch size.
     assert(src.size() == (size_t)numImgs * (size_t)hght * (size_t)wdth * (size_t)(3 + rgba));
@@ -824,8 +831,9 @@ void convertRGBtoNV12(vector<T> &dst, const vector<T> &src, uint wdth, uint hght
 }
 
 //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - //
-#define MAKE_RGBtoNV12(T) \
-    template void convertRGBtoNV12<T>(vector<T> &, const vector<T> &, uint, uint, uint, bool, bool, bool)
+#define MAKE_RGBtoNV12(T)                                                                                             \
+    template void convertRGBtoNV12<T>(vector<T> &, const vector<T> &, unsigned int, unsigned int, unsigned int, bool, \
+                                      bool, bool)
 
 MAKE_RGBtoNV12(uint8_t);
 MAKE_RGBtoNV12(uint16_t);
@@ -839,7 +847,8 @@ MAKE_RGBtoNV12(double);
 
 //-==================================================================================================================-//
 template<typename T>
-void convertNV12toRGB(T *dst, const T *src, uint wdth, uint hght, uint numImgs, bool rgba, bool bgr, bool yvu)
+void convertNV12toRGB(T *dst, const T *src, unsigned int wdth, unsigned int hght, unsigned int numImgs, bool rgba,
+                      bool bgr, bool yvu)
 {
     // Ensure both width and height are multiples of 2 since we're processing 2x2 blocks.
     assert(wdth % 2 == 0 && hght % 2 == 0);
@@ -848,18 +857,18 @@ void convertNV12toRGB(T *dst, const T *src, uint wdth, uint hght, uint numImgs, 
     const size_t incrSrc   = imgPixels * 3 / 2;
     const size_t incrDst   = imgPixels * (3 + rgba);
 
-    for (uint n = 0; n < numImgs; n++, src += incrSrc, dst += incrDst)
+    for (unsigned int n = 0; n < numImgs; n++, src += incrSrc, dst += incrDst)
     {
         T *rgb = dst;
 
         const T *y = src;
 
-        for (uint h = 0; h < hght; h++)
+        for (unsigned int h = 0; h < hght; h++)
         {
             // NOTE: when computing uv row index, h needs to be integer divided by 2 before multiplying by width.
             const T *uv = src + imgPixels + (h >> 1) * wdth;
 
-            for (uint w = 0; w < wdth; w++)
+            for (unsigned int w = 0; w < wdth; w++)
             {
                 double Y = *y++;
                 double U = uv[0];
@@ -893,8 +902,8 @@ void convertNV12toRGB(T *dst, const T *src, uint wdth, uint hght, uint numImgs, 
 
 //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - //
 template<typename T>
-void convertNV12toRGB(vector<T> &dst, const vector<T> &src, uint wdth, uint hght, uint numImgs, bool rgba, bool bgr,
-                      bool yvu)
+void convertNV12toRGB(vector<T> &dst, const vector<T> &src, unsigned int wdth, unsigned int hght, unsigned int numImgs,
+                      bool rgba, bool bgr, bool yvu)
 {
     // Ensure output data has sets of 3 or 4 (RGB/BGA with or w/o alpha) values for the given width and height and batch size.
     assert(dst.size() == (size_t)numImgs * (size_t)hght * (size_t)wdth * (size_t)(3 + rgba));
@@ -906,8 +915,9 @@ void convertNV12toRGB(vector<T> &dst, const vector<T> &src, uint wdth, uint hght
 }
 
 //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - //
-#define MAKE_NV12toRGB(T) \
-    template void convertNV12toRGB<T>(vector<T> &, const vector<T> &, uint, uint, uint, bool, bool, bool)
+#define MAKE_NV12toRGB(T)                                                                                             \
+    template void convertNV12toRGB<T>(vector<T> &, const vector<T> &, unsigned int, unsigned int, unsigned int, bool, \
+                                      bool, bool)
 
 MAKE_NV12toRGB(uint8_t);
 MAKE_NV12toRGB(uint16_t);
@@ -921,29 +931,30 @@ MAKE_NV12toRGB(double);
 
 //-==================================================================================================================-//
 template<typename T, bool LumaFirst>
-void convertYUVtoRGB_422(T *dst, const T *src, uint wdth, uint hght, uint numImgs, bool rgba, bool bgr, bool yvu)
+void convertYUVtoRGB_422(T *dst, const T *src, unsigned int wdth, unsigned int hght, unsigned int numImgs, bool rgba,
+                         bool bgr, bool yvu)
 {
     // Ensure width is a multiple of 2.
     assert(wdth % 2 == 0);
 
-    constexpr uint idx0 = (LumaFirst ? 0 : 1); // First  luma value index.
-    constexpr uint idx1 = idx0 + 2;            // Second luma value index.
-    constexpr uint idxU = (LumaFirst ? 1 : 0); // U chroma value index.
-    constexpr uint idxV = idxU + 2;            // V chroma value index.
+    constexpr unsigned int idx0 = (LumaFirst ? 0 : 1); // First  luma value index.
+    constexpr unsigned int idx1 = idx0 + 2;            // Second luma value index.
+    constexpr unsigned int idxU = (LumaFirst ? 1 : 0); // U chroma value index.
+    constexpr unsigned int idxV = idxU + 2;            // V chroma value index.
 
     const size_t imgPixels = (size_t)hght * (size_t)wdth;
     const size_t incrSrc   = imgPixels * 2;
     const size_t incrDst   = imgPixels * (3 + rgba);
 
-    for (uint n = 0; n < numImgs; n++, src += incrSrc, dst += incrDst)
+    for (unsigned int n = 0; n < numImgs; n++, src += incrSrc, dst += incrDst)
     {
         T *rgb = dst;
 
         const T *img = src;
 
-        for (uint h = 0; h < hght; h++)
+        for (unsigned int h = 0; h < hght; h++)
         {
-            for (uint w = 0; w < wdth; w += 2, img += 4)
+            for (unsigned int w = 0; w < wdth; w += 2, img += 4)
             {
                 T R, G, B;
 
@@ -997,8 +1008,8 @@ void convertYUVtoRGB_422(T *dst, const T *src, uint wdth, uint hght, uint numImg
 
 //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - //
 template<typename T, bool LumaFirst>
-void convertYUVtoRGB_422(vector<T> &dst, const vector<T> &src, uint wdth, uint hght, uint numImgs, bool rgba, bool bgr,
-                         bool yvu)
+void convertYUVtoRGB_422(vector<T> &dst, const vector<T> &src, unsigned int wdth, unsigned int hght,
+                         unsigned int numImgs, bool rgba, bool bgr, bool yvu)
 {
     // Ensure output data has sets of 3 or 4 (RGB/BGA w/ or w/o alpha) values for the given width, height, & batch size.
     assert(dst.size() == (size_t)numImgs * (size_t)hght * (size_t)wdth * (size_t)(3 + rgba));
@@ -1008,8 +1019,9 @@ void convertYUVtoRGB_422(vector<T> &dst, const vector<T> &src, uint wdth, uint h
 }
 
 //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - //
-#define MAKE_422toRGB(T) \
-    template void convertYUVtoRGB_422<T, false>(vector<T> &, const vector<T> &, uint, uint, uint, bool, bool, bool)
+#define MAKE_422toRGB(T)                                                                                    \
+    template void convertYUVtoRGB_422<T, false>(vector<T> &, const vector<T> &, unsigned int, unsigned int, \
+                                                unsigned int, bool, bool, bool)
 
 MAKE_422toRGB(uint8_t);
 MAKE_422toRGB(uint16_t);
@@ -1019,8 +1031,9 @@ MAKE_422toRGB(double);
 
 #undef MAKE_422toRGB
 //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - //
-#define MAKE_422toRGB(T) \
-    template void convertYUVtoRGB_422<T, true>(vector<T> &, const vector<T> &, uint, uint, uint, bool, bool, bool)
+#define MAKE_422toRGB(T)                                                                                   \
+    template void convertYUVtoRGB_422<T, true>(vector<T> &, const vector<T> &, unsigned int, unsigned int, \
+                                               unsigned int, bool, bool, bool)
 
 MAKE_422toRGB(uint8_t);
 MAKE_422toRGB(uint16_t);

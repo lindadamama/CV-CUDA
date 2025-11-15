@@ -1,4 +1,4 @@
-/* Copyright (c) 2021-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+/* Copyright (c) 2021-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  *
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
  * SPDX-License-Identifier: Apache-2.0
@@ -378,9 +378,9 @@ static void cuosd_text_prepare(cuOSDContext_t context, int width, int height, cu
         return;
 
     if (context->text_location == nullptr)
-        context->text_location.reset(new Memory<TextLocation>());
+        context->text_location = std::make_unique<Memory<TextLocation>>();
     if (context->line_location_base == nullptr)
-        context->line_location_base.reset(new Memory<int>());
+        context->line_location_base = std::make_unique<Memory<int>>();
     context->text_location->alloc_or_resize_to(total_locations);
     context->line_location_base->alloc_or_resize_to(locations.size() + 1);
 
@@ -441,9 +441,9 @@ static void cuosd_apply(cuOSDContext_t context, int width, int height, cuOSDImag
         }
 
         if (context->gpu_commands == nullptr)
-            context->gpu_commands.reset(new Memory<unsigned char>());
+            context->gpu_commands = std::make_unique<Memory<unsigned char>>();
         if (context->gpu_commands_offset == nullptr)
-            context->gpu_commands_offset.reset(new Memory<int>());
+            context->gpu_commands_offset = std::make_unique<Memory<int>>();
 
         context->gpu_commands->alloc_or_resize_to(byte_of_commands);
         context->gpu_commands_offset->alloc_or_resize_to(cmd_offset.size());
@@ -1277,11 +1277,7 @@ static ErrorCode cuosd_draw_rectangle(cuOSDContext_t context, int batch_idx, int
         return ErrorCode::SUCCESS;
     }
 
-    if (bbox.borderColor.a == 0)
-    {
-        return ErrorCode::SUCCESS;
-    }
-
+    // Draw fill if present
     if (bbox.fillColor.a || bbox.thickness == -1)
     {
         if (bbox.thickness == -1)
@@ -1315,6 +1311,12 @@ static ErrorCode cuosd_draw_rectangle(cuOSDContext_t context, int batch_idx, int
         context->commands.emplace_back(cmd);
     }
     if (bbox.thickness == -1)
+    {
+        return ErrorCode::SUCCESS;
+    }
+
+    // Only draw border if it has non-zero alpha
+    if (bbox.borderColor.a == 0)
     {
         return ErrorCode::SUCCESS;
     }
@@ -1658,7 +1660,9 @@ static ErrorCode cuosd_draw_rotationbox(cuOSDContext_t context, int batch_idx, N
         context->commands.emplace_back(cmd);
     }
     if (rb.thickness == -1)
-        return ErrorCode::INVALID_PARAMETER;
+    {
+        return ErrorCode::SUCCESS;
+    }
 
     auto cmd         = std::make_shared<RectangleCommand>();
     cmd->batch_index = batch_idx;
@@ -1843,8 +1847,8 @@ ErrorCode OSD::infer(const nvcv::TensorDataStridedCuda &inData, const nvcv::Tens
 
     if (inData.dtype() != outData.dtype())
     {
-        LOG_ERROR("Input and Output formats must be same input format =" << inData.dtype()
-                                                                         << " output format = " << outData.dtype());
+        LOG_ERROR("Input and Output formats must be same input format = " << inData.dtype()
+                                                                          << " output format = " << outData.dtype());
         return ErrorCode::INVALID_DATA_FORMAT;
     }
 

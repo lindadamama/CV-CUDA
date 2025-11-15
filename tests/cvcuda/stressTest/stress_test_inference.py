@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2023-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2023-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,7 +18,6 @@ import numpy as np
 import cvcuda
 import torch
 import random
-import nvcv
 
 import os
 import sys
@@ -160,9 +159,9 @@ class ObjectDetectionTensorflow:
             frame_nchw_tf = tf.experimental.dlpack.from_dlpack(frame_nchw.__dlpack__())
             frame_nchw_tf = tf.reshape(frame_nchw_tf, frame_nchw_shape)
 
-        elif isinstance(frame_nchw, nvcv.Tensor):
-            # We convert nvcv.Tensor to tf.Tensor by:
-            # nvcv.Tensor -> PyTorch Tensor -> Pytorch Flat Tensor -> DlPack -> tf.Tensor -> Un-flatten
+        elif isinstance(frame_nchw, cvcuda.Tensor):
+            # We convert cvcuda.Tensor to tf.Tensor by:
+            # cvcuda.Tensor -> PyTorch Tensor -> Pytorch Flat Tensor -> DlPack -> tf.Tensor -> Un-flatten
             frame_nchw_pyt = torch.as_tensor(
                 frame_nchw.cuda(), device="cuda:%d" % self.device_id
             )

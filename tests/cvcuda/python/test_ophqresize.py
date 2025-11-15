@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2024-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import nvcv
 import cvcuda
 import pytest as t
 import cvcuda_util as util
@@ -37,44 +36,44 @@ def get_shape(in_shape, layout, out_size):
     "src_args, dst_args, interpolation_args, roi",
     [
         (
-            ((2, 244, 244, 3), nvcv.Type.U8, "NHWC"),
-            ((122, 122), nvcv.Type.U8),
+            ((2, 244, 244, 3), cvcuda.Type.U8, "NHWC"),
+            ((122, 122), cvcuda.Type.U8),
             (cvcuda.Interp.NEAREST, cvcuda.Interp.NEAREST, False),
             None,
         ),
         (
-            ((2, 244, 244, 3), nvcv.Type.U8, "NHWC"),
-            ((122, 244), nvcv.Type.U8),
+            ((2, 244, 244, 3), cvcuda.Type.U8, "NHWC"),
+            ((122, 244), cvcuda.Type.U8),
             (cvcuda.Interp.LINEAR, cvcuda.Interp.LINEAR, False),
             None,
         ),
         (
-            ((1, 244, 244, 2), nvcv.Type.U8, "NHWC"),
-            ((122, 122), nvcv.Type.F32),
+            ((1, 244, 244, 2), cvcuda.Type.U8, "NHWC"),
+            ((122, 122), cvcuda.Type.F32),
             (cvcuda.Interp.LINEAR, cvcuda.Interp.CUBIC, True),
             (50, 10, 230, 220),
         ),
         (
-            ((3, 101, 244, 301, 3), nvcv.Type.U16, "NDHWC"),
-            ((122, 54, 101), nvcv.Type.U16),
+            ((3, 101, 244, 301, 3), cvcuda.Type.U16, "NDHWC"),
+            ((122, 54, 101), cvcuda.Type.U16),
             (cvcuda.Interp.GAUSSIAN, cvcuda.Interp.CUBIC, True),
             None,
         ),
         (
-            ((54, 54, 54, 4), nvcv.Type.U8, "DHWC"),
-            ((100, 100, 100), nvcv.Type.U8),
+            ((54, 54, 54, 4), cvcuda.Type.U8, "DHWC"),
+            ((100, 100, 100), cvcuda.Type.U8),
             (cvcuda.Interp.LANCZOS, cvcuda.Interp.LINEAR, True),
             (54, 0, 0, 0, 54, 54),
         ),
         (
-            ((101, 102, 103), nvcv.Type.U8, "DHW"),
-            ((41, 45, 49), nvcv.Type.F32),
+            ((101, 102, 103), cvcuda.Type.U8, "DHW"),
+            ((41, 45, 49), cvcuda.Type.F32),
             (cvcuda.Interp.NEAREST, cvcuda.Interp.LINEAR, False),
             None,
         ),
         (
-            ((101, 102, 103), nvcv.Type.U8, "DHW"),
-            ((101, 45, 49), nvcv.Type.F32),
+            ((101, 102, 103), cvcuda.Type.U8, "DHW"),
+            ((101, 45, 49), cvcuda.Type.F32),
             (cvcuda.Interp.NEAREST, cvcuda.Interp.LINEAR, False),
             None,
         ),
@@ -152,7 +151,7 @@ def test_op_hq_resize_var_shape_api(
     assert len(layout) == len(src_shape)
     min_interpolation, mag_interpolation, antialias = interpolation_args
 
-    b_src = nvcv.ImageBatchVarShape(num_samples)
+    b_src = cvcuda.ImageBatchVarShape(num_samples)
     out_sizes = []
     for _ in range(num_samples):
         sample_size = tuple(
@@ -162,19 +161,19 @@ def test_op_hq_resize_var_shape_api(
         )
         sample_shape = get_shape(src_shape, layout, sample_size)
         h_data = util.generate_data(sample_shape, src_type, rng=RNG)
-        image = util.to_nvcv_image(h_data)
+        image = util.to_cvcuda_image(h_data)
         b_src.pushback(image)
         out_sizes.append(
             tuple(RNG.integers(1, 2 * extent + 1) for extent in sample_size)
         )
 
     if src_type != dst_type:
-        b_dst = nvcv.ImageBatchVarShape(num_samples)
+        b_dst = cvcuda.ImageBatchVarShape(num_samples)
         assert len(out_sizes) == num_samples
         for out_size in out_sizes:
             out_shape = get_shape(src_shape, layout, out_size)
             h_data = util.generate_data(out_shape, dst_type, rng=RNG)
-            image = util.to_nvcv_image(h_data)
+            image = util.to_cvcuda_image(h_data)
             b_dst.pushback(image)
 
         b_tmp = cvcuda.hq_resize_into(
@@ -211,29 +210,29 @@ def test_op_hq_resize_var_shape_api(
     [
         (
             7,
-            ((244, 244, 3), nvcv.Type.U8, "HWC"),
-            nvcv.Type.U8,
+            ((244, 244, 3), cvcuda.Type.U8, "HWC"),
+            cvcuda.Type.U8,
             (cvcuda.Interp.NEAREST, cvcuda.Interp.NEAREST, False),
             False,
         ),
         (
             5,
-            ((244, 244), nvcv.Type.U8, "HW"),
-            nvcv.Type.F32,
+            ((244, 244), cvcuda.Type.U8, "HW"),
+            cvcuda.Type.F32,
             (cvcuda.Interp.LINEAR, cvcuda.Interp.CUBIC, True),
             True,
         ),
         (
             3,
-            ((101, 244, 301, 3), nvcv.Type.U16, "DHWC"),
-            nvcv.Type.U16,
+            ((101, 244, 301, 3), cvcuda.Type.U16, "DHWC"),
+            cvcuda.Type.U16,
             (cvcuda.Interp.GAUSSIAN, cvcuda.Interp.CUBIC, True),
             True,
         ),
         (
             1,
-            ((101, 102, 103), nvcv.Type.U8, "DHW"),
-            nvcv.Type.F32,
+            ((101, 102, 103), cvcuda.Type.U8, "DHW"),
+            cvcuda.Type.F32,
             (cvcuda.Interp.NEAREST, cvcuda.Interp.LINEAR, False),
             False,
         ),
@@ -248,7 +247,7 @@ def test_op_hq_resize_tensor_batch_api(
     assert len(layout) == len(src_shape)
     min_interpolation, mag_interpolation, antialias = interpolation_args
 
-    b_src = nvcv.TensorBatch(num_samples)
+    b_src = cvcuda.TensorBatch(num_samples)
     out_sizes = []
     rois = []
     for _ in range(num_samples):
@@ -270,7 +269,7 @@ def test_op_hq_resize_tensor_batch_api(
             rois.append(roi)
 
     if src_type != dst_type:
-        b_dst = nvcv.TensorBatch(num_samples)
+        b_dst = cvcuda.TensorBatch(num_samples)
         assert len(out_sizes) == num_samples
         for out_size in out_sizes:
             out_shape = get_shape(src_shape, layout, out_size)

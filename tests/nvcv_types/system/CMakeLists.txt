@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2022-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2022-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -49,7 +49,7 @@ target_link_libraries(nvcv_test_types_system
         nvcv_types
 )
 
-nvcv_add_test(nvcv_test_types_system nvcv)
+nvcv_add_test(nvcv_test_types_system nvcv cpp)
 
 # header compatibility tests ---------------------------------------------
 
@@ -88,4 +88,4 @@ target_link_libraries(nvcv_test_types_system_version_commit
         nvcv_types
 )
 
-nvcv_add_test(nvcv_test_types_system_version_commit nvcv)
+nvcv_add_test(nvcv_test_types_system_version_commit nvcv cpp)

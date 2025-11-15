@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2023-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2023-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -96,8 +96,8 @@ try
         nvcv::Tensor maskTensor({{shape.x}, "N"}, nvcv::TYPE_2S32);
         nvcv::Tensor anchorTensor({{shape.x}, "N"}, nvcv::TYPE_2S32);
 
-        benchutils::FillTensor<int2>(maskTensor, [&mask](const long4 &){ return int2{mask.w, mask.h}; });
-        benchutils::FillTensor<int2>(anchorTensor, [&anchor](const long4 &){ return anchor; });
+        benchutils::FillTensor<int2>(maskTensor, [&mask](const long4_16a &){ return int2{mask.w, mask.h}; });
+        benchutils::FillTensor<int2>(anchorTensor, [&anchor](const long4_16a &){ return anchor; });
 
         nvcv::ImageBatchVarShape workspace{nullptr};
 

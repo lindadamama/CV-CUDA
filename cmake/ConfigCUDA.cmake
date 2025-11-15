@@ -23,8 +23,8 @@ find_package(CUDAToolkit ${CUDA_VERSION_MAJOR}.${CUDA_VERSION_MINOR} REQUIRED)
 # CUDA version requirement:
 # - to use gcc-9 (11.4)
 
-if(CMAKE_CUDA_COMPILER_VERSION VERSION_LESS "11.4")
-    message(FATAL_ERROR "Minimum CUDA version supported is 11.4")
+if(CMAKE_CUDA_COMPILER_VERSION VERSION_LESS "12.2")
+    message(FATAL_ERROR "Minimum CUDA version supported is 12.2")
 endif()
 
 set(CMAKE_CUDA_STANDARD ${CMAKE_CXX_STANDARD})
@@ -35,41 +35,66 @@ set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xfatbin=--compress-all")
 # Enable device lambdas
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --extended-lambda")
 
+# see https://developer.nvidia.com/cuda-gpus
 if(NOT USE_CMAKE_CUDA_ARCHITECTURES)
     set(CMAKE_CUDA_ARCHITECTURES "$ENV{CUDAARCHS}")
 
-    if(ENABLE_TEGRA)
+    if(ARCH_X86_64)
+        if(CMAKE_CUDA_COMPILER_VERSION VERSION_LESS "13.0")
+            list(APPEND CMAKE_CUDA_ARCHITECTURES
+                70-real # Volta  - gv100/Tesla
+            )
+        endif()
+        if(CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL "11.8")
+            list(APPEND CMAKE_CUDA_ARCHITECTURES
+                75-real # Turing - tu10x/GeForce
+                80-real # Ampere - ga100/Tesla
+                86-real # Ampere - ga10x/GeForce
+                89-real # Ada    - ad102/GeForce
+                90-real # Hopper - gh100/Tesla
+            )
+        endif()
+        if(CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL "12.8")
+            list(APPEND CMAKE_CUDA_ARCHITECTURES
+                100-real # Blackwell B200, B300
+                120-real # RTX Pro 6000, RTX 50**
+            )
+        endif()
+    elseif(ARCH_AARCH64)
         list(APPEND CMAKE_CUDA_ARCHITECTURES
-            72-real # Volta  - gv11b/Tegra (Jetson AGX Xavier)
+            80-real # Ampere - ga100/Tesla
             86-real # Jetson IGX Orin with optional Ampere RTX A6000
             87-real # Ampere - ga10b,ga10c/Tegra (Jetson AGX Orin)
         )
+        if(CMAKE_CUDA_COMPILER_VERSION VERSION_LESS "13.0")
+            list(APPEND CMAKE_CUDA_ARCHITECTURES
+                72-real # Volta  - gv11b/Tegra (Jetson AGX Xavier)
+            )
+        endif()
         if(CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL "11.8")
             list(APPEND CMAKE_CUDA_ARCHITECTURES
                 89-real # Jetson IGX Orin with optional RTX 6000 Ada
                 90-real # Grace Hopper - gh100/Tesla
             )
         endif()
-    else()
-        # All architectures we build sass for
-        list(APPEND CMAKE_CUDA_ARCHITECTURES
-             70-real # Volta  - gv100/Tesla
-             75-real # Turing - tu10x/GeForce
-             80-real # Ampere - ga100/Tesla
-             86-real # Ampere - ga10x/GeForce
-        )
-
-        if(CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL "11.8")
+        if(CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL "12.8")
             list(APPEND CMAKE_CUDA_ARCHITECTURES
-                89-real # Ada    - ad102/GeForce
-                90-real # Hopper - gh100/Tesla
+                100-real # Blackwell GB200, GB300
+            )
+        endif()
+        if(CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL "13.0")
+            list(APPEND CMAKE_CUDA_ARCHITECTURES
+                110-real # Thor
+                121-real # DGX Spark
             )
         endif()
     endif()
 
-    # Required compute capability:
-    # * compute_70: fast fp16 support + PTX for forward compatibility
-    list(APPEND CMAKE_CUDA_ARCHITECTURES 70-virtual)
+    if(CMAKE_CUDA_COMPILER_VERSION VERSION_LESS "13.0")
+        # Required compute capability:
+        # * compute_70: fast fp16 support + PTX for forward compatibility
+        list(APPEND CMAKE_CUDA_ARCHITECTURES 70-virtual)
+    endif()
 
     # We must set the cache to the correct values, or else cmake will write its default there,
     # which is the old architecture supported by nvcc. We don't want that.

@@ -763,3 +763,60 @@ TEST(OpWarpAffine_Negative, create_null_handle)
 {
     EXPECT_EQ(cvcudaWarpAffineCreate(nullptr, 2), NVCV_ERROR_INVALID_ARGUMENT);
 }
+
+TEST(OpWarpAffineVarshape_Negative, different_format_varshape)
+{
+    std::vector<std::pair<nvcv::ImageFormat, nvcv::ImageFormat>> extraFmts{
+        { nvcv::FMT_RGB8, nvcv::FMT_RGBA8},
+        {nvcv::FMT_RGBA8,  nvcv::FMT_RGB8}
+    };
+
+    for (const auto &testCase : extraFmts)
+    {
+        auto extraFmtSrc = testCase.first;
+        auto extraFmtDst = testCase.second;
+
+        cudaStream_t stream;
+        EXPECT_EQ(cudaSuccess, cudaStreamCreate(&stream));
+
+        int                     numImages = 3;
+        const nvcv::ImageFormat fmt       = nvcv::FMT_RGB8;
+
+        NVCVInterpolationType interpolation = NVCV_INTERP_NEAREST;
+        NVCVBorderType        borderMode    = NVCV_BORDER_CONSTANT;
+        const float4          borderValue   = {1, 2, 3, 4};
+        bool                  inverseMap    = true;
+
+        const int flags = interpolation | (inverseMap ? NVCV_WARP_INVERSE_MAP : 0);
+
+        nvcv::Tensor transMatrixTensor(nvcv::TensorShape({numImages, 6}, nvcv::TENSOR_NW), nvcv::TYPE_F32);
+
+        // Create input and output
+        std::default_random_engine randEng;
+        std::vector<nvcv::Image>   imgSrc, imgDst;
+
+        for (int i = 0; i < numImages - 1; ++i)
+        {
+            imgSrc.emplace_back(nvcv::Size2D{5, 4}, fmt);
+            imgDst.emplace_back(nvcv::Size2D{5, 4}, fmt);
+        }
+
+        imgSrc.emplace_back(nvcv::Size2D{5, 4}, extraFmtSrc);
+        imgDst.emplace_back(nvcv::Size2D{5, 4}, extraFmtDst);
+
+        nvcv::ImageBatchVarShape batchSrc(numImages);
+        batchSrc.pushBack(imgSrc.begin(), imgSrc.end());
+
+        nvcv::ImageBatchVarShape batchDst(numImages);
+        batchDst.pushBack(imgDst.begin(), imgDst.end());
+
+        cvcuda::WarpAffine warpAffineOp(numImages);
+        EXPECT_EQ(
+            NVCV_ERROR_INVALID_ARGUMENT,
+            nvcv::ProtectCall(
+                [&] { warpAffineOp(stream, batchSrc, batchDst, transMatrixTensor, flags, borderMode, borderValue); }));
+
+        EXPECT_EQ(cudaSuccess, cudaStreamSynchronize(stream));
+        EXPECT_EQ(cudaSuccess, cudaStreamDestroy(stream));
+    }
+}

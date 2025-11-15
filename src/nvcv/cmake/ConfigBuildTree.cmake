@@ -45,19 +45,39 @@ else()
     set(DEFAULT_EXPOSE_CODE ON)
 endif()
 
-if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64")
-    set(PLATFORM_IS_ARM64 ON)
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|amd64|AMD64|x64)$")
+    set(ARCH_X86_64 ON)
 else()
-    set(PLATFORM_IS_ARM64 OFF)
+    set(ARCH_X86_64 OFF)
+endif()
+
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64)$")
+    set(ARCH_AARCH64 ON)
+else()
+    set(ARCH_AARCH64 OFF)
+endif()
+
+# Ensure at least one supported architecture is detected
+if(NOT ARCH_X86_64 AND NOT ARCH_AARCH64)
+    message(FATAL_ERROR "Unsupported architecture: ${CMAKE_SYSTEM_PROCESSOR}. "
+                        "CV-CUDA only supports x86_64 and aarch64 architectures.")
+endif()
+
+# Platform detection
+if(CMAKE_SYSTEM_NAME MATCHES "Linux")
+    set(PLATFORM_IS_LINUX ON)
+elseif(CMAKE_SYSTEM_NAME MATCHES "QNX")
+    set(PLATFORM_IS_LINUX OFF)
+else()
+    set(PLATFORM_IS_LINUX OFF)
 endif()
 
 include(CMakeDependentOption)
 
 option(EXPOSE_CODE "Expose in resulting binaries parts of our code" ${DEFAULT_EXPOSE_CODE})
 option(WARNINGS_AS_ERRORS "Treat compilation warnings as errors" OFF)
-cmake_dependent_option(ENABLE_TEGRA "Enable tegra support" ON "PLATFORM_IS_ARM64" OFF)
-cmake_dependent_option(ENABLE_COMPAT_OLD_GLIBC "Generates binaries that work with old distros, with old glibc" ON "NOT ENABLE_TEGRA" OFF)
-cmake_dependent_option(ENABLE_QNX "Enable QNX support" OFF "PLATFORM_IS_ARM64" OFF)
+cmake_dependent_option(ENABLE_COMPAT_OLD_GLIBC "Generates binaries that work with old distros, with old glibc" ON "NOT ARCH_AARCH64" OFF)
+cmake_dependent_option(ENABLE_QNX "Enable QNX support" OFF "ARCH_AARCH64" OFF)
 
 if(ENABLE_QNX)
     set(PLATFORM_IS_QNX ON)
@@ -75,10 +95,13 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/.git AND EXISTS ${CMAKE_SOURCE_DIR}/.gitmodules)
     endif()
 endif()
 
-if(UNIX)
+if(PLATFORM_IS_LINUX)
     set(NVCV_SYSTEM_NAME "${CMAKE_SYSTEM_PROCESSOR}-linux")
+elseif(PLATFORM_IS_QNX)
+    set(NVCV_SYSTEM_NAME "${CMAKE_SYSTEM_PROCESSOR}-qnx")
 else()
-    message(FATAL_ERROR "Architecture not supported")
+    message(FATAL_ERROR "Unsupported platform: ${CMAKE_SYSTEM_NAME}. "
+                        "CV-CUDA only supports Linux and QNX platforms.")
 endif()
 
 set(NVCV_BUILD_SUFFIX "cuda${CUDAToolkit_VERSION_MAJOR}-${NVCV_SYSTEM_NAME}")

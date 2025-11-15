@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2023 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2023-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import nvcv
 import cvcuda
 import pytest as t
 import cvcuda_util as util
@@ -26,106 +25,106 @@ RNG = np.random.default_rng(12345)
     "src_args, dst_dtype, args_setup",
     [
         (
-            ((1, 16, 23, 3), nvcv.Type.U8, "NHWC"),
-            nvcv.Type.U8,
+            ((1, 16, 23, 3), cvcuda.Type.U8, "NHWC"),
+            cvcuda.Type.U8,
             (
-                nvcv.Type.F32,
+                cvcuda.Type.F32,
                 (1, 1, 1, 1),
             ),
         ),
         (
-            ((5, 33, 28), nvcv.Type._3U8, "NHWC"),
-            nvcv.Type._3U8,
+            ((5, 33, 28), cvcuda.Type._3U8, "NHWC"),
+            cvcuda.Type._3U8,
             (
-                nvcv.Type.F32,
+                cvcuda.Type.F32,
                 (5, 5, 5, 5),
             ),
         ),
         (
-            ((16, 23, 3), nvcv.Type.U8, "HWC"),
-            nvcv.Type.U8,
+            ((16, 23, 3), cvcuda.Type.U8, "HWC"),
+            cvcuda.Type.U8,
             (
-                nvcv.Type.F32,
+                cvcuda.Type.F32,
                 (1, 1, 1, 1),
             ),
         ),
         (
-            ((33, 28), nvcv.Type._3U8, "HWC"),
-            nvcv.Type._3U8,
+            ((33, 28), cvcuda.Type._3U8, "HWC"),
+            cvcuda.Type._3U8,
             (
-                nvcv.Type.F32,
+                cvcuda.Type.F32,
                 (1, 1, 1, 1),
             ),
         ),
         (
-            ((9, 16, 23, 3), nvcv.Type.U16, "NHWC"),
-            nvcv.Type.U16,
+            ((9, 16, 23, 3), cvcuda.Type.U16, "NHWC"),
+            cvcuda.Type.U16,
             (
-                nvcv.Type.F32,
+                cvcuda.Type.F32,
                 (1, 9, 1, 9),
             ),
         ),
         (
-            ((9, 16, 23), nvcv.Type._4S16, "NHWC"),
-            nvcv.Type._4S16,
+            ((9, 16, 23), cvcuda.Type._4S16, "NHWC"),
+            cvcuda.Type._4S16,
             (
-                nvcv.Type.F32,
+                cvcuda.Type.F32,
                 (9, 9, 9, 9),
             ),
         ),
         (
-            ((13, 33, 28), nvcv.Type._3U16, "NHWC"),
-            nvcv.Type._3U16,
+            ((13, 33, 28), cvcuda.Type._3U16, "NHWC"),
+            cvcuda.Type._3U16,
             (
-                nvcv.Type.F32,
+                cvcuda.Type.F32,
                 (13, 1, 13, 1),
             ),
         ),
         (
-            ((9, 16, 23, 4), nvcv.Type.S32, "NHWC"),
-            nvcv.Type.S32,
+            ((9, 16, 23, 4), cvcuda.Type.S32, "NHWC"),
+            cvcuda.Type.S32,
             (
-                nvcv.Type.F64,
+                cvcuda.Type.F64,
                 (9, 9, 9, 1),
             ),
         ),
         (
-            ((13, 33, 28), nvcv.Type._4S32, "NHWC"),
-            nvcv.Type._4S32,
+            ((13, 33, 28), cvcuda.Type._4S32, "NHWC"),
+            cvcuda.Type._4S32,
             (
-                nvcv.Type.F64,
+                cvcuda.Type.F64,
                 (1, 13, 13, 13),
             ),
         ),
         (
-            ((17, 16, 23, 3), nvcv.Type.F32, "NHWC"),
-            nvcv.Type.F32,
+            ((17, 16, 23, 3), cvcuda.Type.F32, "NHWC"),
+            cvcuda.Type.F32,
             (
-                nvcv.Type.F32,
+                cvcuda.Type.F32,
                 (17, 17, 17, 17),
             ),
         ),
         (
-            ((21, 33, 28), nvcv.Type._3F32, "NHWC"),
-            nvcv.Type._3F32,
+            ((21, 33, 28), cvcuda.Type._3F32, "NHWC"),
+            cvcuda.Type._3F32,
             (
-                nvcv.Type.F32,
+                cvcuda.Type.F32,
                 (21, 21, 1, 21),
             ),
         ),
         (
-            ((16, 23, 3), nvcv.Type.F32, "HWC"),
-            nvcv.Type.F32,
+            ((16, 23, 3), cvcuda.Type.F32, "HWC"),
+            cvcuda.Type.F32,
             (
-                nvcv.Type.F32,
+                cvcuda.Type.F32,
                 (1, 1, 1, 1),
             ),
         ),
         (
-            ((33, 28), nvcv.Type._3F32, "HWC"),
-            nvcv.Type._3F32,
+            ((33, 28), cvcuda.Type._3F32, "HWC"),
+            cvcuda.Type._3F32,
             (
-                nvcv.Type.F32,
+                cvcuda.Type.F32,
                 (1, 1, 1, 1),
             ),
         ),
@@ -173,51 +172,51 @@ def test_op_brightness_contrast_api(src_args, dst_dtype, args_setup):
     [
         (
             1,
-            nvcv.Format.BGR8,
+            cvcuda.Format.BGR8,
             np.uint8,
             (128, 128),
-            nvcv.Format.BGR8,
-            (nvcv.Type.F32, (1, 1, 1, 1)),
+            cvcuda.Format.BGR8,
+            (cvcuda.Type.F32, (1, 1, 1, 1)),
         ),
         (
             2,
-            nvcv.Format.BGR8,
+            cvcuda.Format.BGR8,
             np.uint8,
             (128, 128),
-            nvcv.Format.BGRf32,
-            (nvcv.Type.F32, (2, 2, 2, 1)),
+            cvcuda.Format.BGRf32,
+            (cvcuda.Type.F32, (2, 2, 2, 1)),
         ),
         (
             3,
-            nvcv.Format.BGRf32,
+            cvcuda.Format.BGRf32,
             np.float32,
             (128, 128),
-            nvcv.Format.BGR8,
-            (nvcv.Type.F32, (3, 3, 1, 3)),
+            cvcuda.Format.BGR8,
+            (cvcuda.Type.F32, (3, 3, 1, 3)),
         ),
         (
             4,
-            nvcv.Format.RGB8p,
+            cvcuda.Format.RGB8p,
             np.uint8,
             (128, 128),
-            nvcv.Format.RGB8p,
-            (nvcv.Type.F32, (4, 1, 4, 4)),
+            cvcuda.Format.RGB8p,
+            (cvcuda.Type.F32, (4, 1, 4, 4)),
         ),
         (
             5,
-            nvcv.Format.RGB8p,
+            cvcuda.Format.RGB8p,
             np.uint8,
             (128, 128),
-            nvcv.Format.RGBf32p,
-            (nvcv.Type.F32, (1, 5, 5, 5)),
+            cvcuda.Format.RGBf32p,
+            (cvcuda.Type.F32, (1, 5, 5, 5)),
         ),
         (
             6,
-            nvcv.Format.RGBf32p,
+            cvcuda.Format.RGBf32p,
             np.float32,
             (128, 128),
-            nvcv.Format.RGB8p,
-            (nvcv.Type.F32, (6, 6, 6, 6)),
+            cvcuda.Format.RGB8p,
+            (cvcuda.Type.F32, (6, 6, 6, 6)),
         ),
     ],
 )
@@ -232,7 +231,7 @@ def test_op_brightnesscontrastvarshape_api(
     brightness_shift = util.create_tensor((bs_num,), arg_dtype, "N")
     contrast_center = util.create_tensor((cc_num,), arg_dtype, "N")
 
-    b_src = nvcv.ImageBatchVarShape(num_images)
+    b_src = cvcuda.ImageBatchVarShape(num_images)
     for _ in range(num_images):
         h, w = max_size
         h = RNG.integers(1, h + 1)
@@ -240,16 +239,14 @@ def test_op_brightnesscontrastvarshape_api(
         if src_format.planes == 1:
             shape = (h, w, src_format.channels)
             h_data = util.generate_data(shape, src_dtype, rng=RNG)
-            # image = util.to_nvcv_image(h_data, format=src_format)
-            image = nvcv.as_image(util.to_cuda_buffer(h_data))
+            image = cvcuda.as_image(util.to_cuda_buffer(h_data))
         else:
             shape = (h, w)
             planes_data = [
                 util.generate_data(shape, src_dtype, rng=RNG)
                 for _ in range(src_format.planes)
             ]
-            # image = util.to_nvcv_image(h_data, format=src_format)
-            image = nvcv.as_image(
+            image = cvcuda.as_image(
                 [util.to_cuda_buffer(plane_data) for plane_data in planes_data],
                 format=src_format,
             )

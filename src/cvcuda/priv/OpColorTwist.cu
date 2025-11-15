@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2023-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2023-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,6 +17,7 @@
 
 #include "OpColorTwist.hpp"
 
+#include <cvcuda/cuda_tools/Compat.hpp>
 #include <cvcuda/cuda_tools/DropCast.hpp>
 #include <cvcuda/cuda_tools/ImageBatchVarShapeWrap.hpp>
 #include <cvcuda/cuda_tools/MathOps.hpp>
@@ -238,10 +239,10 @@ inline void RunSrcTypeSwitch(int numChannels, nvcv::DataType srcType, nvcv::Data
     else if NVCV_RUN_COLOR_TWIST (4, U16, F32, ushort4, float4);
     else if NVCV_RUN_COLOR_TWIST (3, S16, F32, short3, float4);
     else if NVCV_RUN_COLOR_TWIST (4, S16, F32, short4, float4);
-    else if NVCV_RUN_COLOR_TWIST (3, U32, F64, uint3, double4);
-    else if NVCV_RUN_COLOR_TWIST (4, U32, F64, uint4, double4);
-    else if NVCV_RUN_COLOR_TWIST (3, S32, F64, int3, double4);
-    else if NVCV_RUN_COLOR_TWIST (4, S32, F64, int4, double4);
+    else if NVCV_RUN_COLOR_TWIST (3, U32, F64, uint3, double4_16a);
+    else if NVCV_RUN_COLOR_TWIST (4, U32, F64, uint4, double4_16a);
+    else if NVCV_RUN_COLOR_TWIST (3, S32, F64, int3, double4_16a);
+    else if NVCV_RUN_COLOR_TWIST (4, S32, F64, int4, double4_16a);
     else if NVCV_RUN_COLOR_TWIST (3, F32, F32, float3, float4);
     else if NVCV_RUN_COLOR_TWIST (4, F32, F32, float4, float4);
     else

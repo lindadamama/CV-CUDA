@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2023-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2023-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -72,14 +72,14 @@ inline const T &ValueAt(const std::vector<uint8_t> &vec, long3 strides, int2 siz
 }
 
 template<typename T>
-inline T &ValueAt(std::vector<uint8_t> &vec, long4 strides, int4 coord)
+inline T &ValueAt(std::vector<uint8_t> &vec, long4_16a strides, int4 coord)
 {
     return *reinterpret_cast<T *>(
         &vec[coord.w * strides.x + coord.z * strides.y + coord.y * strides.z + coord.x * strides.w]);
 }
 
 template<NVCVBorderType B, typename T>
-inline const T &ValueAt(const std::vector<uint8_t> &vec, long4 strides, int2 size, const T &borderValue, int4 coord)
+inline const T &ValueAt(const std::vector<uint8_t> &vec, long4_16a strides, int2 size, const T &borderValue, int4 coord)
 {
     int2 inCoord{coord.y, coord.z};
 

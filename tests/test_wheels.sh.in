@@ -25,7 +25,7 @@ fi
 
 # shellcheck disable=2206
 WHEEL_LIST=($1/**/cvcuda*.whl)
-PACKAGES=("cvcuda" "nvcv")
+PACKAGES=("cvcuda")
 
 # Check for GPU and driver
 if command -v nvidia-smi &> /dev/null; then
@@ -51,6 +51,9 @@ if [ ${#WHEEL_LIST[@]} -eq 0 ]; then
     exit 0
 fi
 
+# Track if any wheels were successfully tested
+wheels_tested=0
+
 # Extract compatible Python versions from the wheel filenames
 get_compatible_pythons() {
     local wheel_file="$1"
@@ -60,8 +63,21 @@ get_compatible_pythons() {
 
     for tag in "${tags[@]}"; do
         if [[ "${tag}" =~ cp(3[0-9]{1,2}) ]]; then
+            # CPython-specific tag (e.g., cp39, cp310)
             py_ver="${BASH_REMATCH[1]}"
             compatible_versions+=("${py_ver}")
+        elif [[ "${tag}" == "py3" ]]; then
+            # Generic py3 tag - compatible with all Python 3.x versions
+            # Find all available Python 3.x versions on the system
+            for py_cmd in python3.{9..13}; do
+                if command -v "${py_cmd}" &> /dev/null; then
+                    # Extract version number (e.g., "39" from "python3.9")
+                    py_ver="${py_cmd##*.}"
+                    compatible_versions+=("3${py_ver}")
+                fi
+            done
+            # Break after handling py3 to avoid duplicates
+            break
         fi
     done
 
@@ -94,12 +110,14 @@ for whl in "${WHEEL_LIST[@]}"; do
         ${py_exec} -m venv --without-pip "${test_env_dir}/test_env"
         source "${test_env_dir}/test_env/bin/activate"
 
-        # Manually install pip using get-pip.py
+        # Manually install pip using ensurepip (should work in venv even on Debian/Ubuntu)
         echo "Manually installing pip..."
-        if [ "${py_exec}" == "python3.8" ]; then
-            curl -sS https://bootstrap.pypa.io/pip/3.8/get-pip.py | ${py_exec}
-        else
-            curl -sS https://bootstrap.pypa.io/get-pip.py | ${py_exec}
+        if ! ${py_exec} -m ensurepip --upgrade; then
+            echo "Error: Failed to install pip using ensurepip in venv."
+            echo "This is unexpected - ensurepip should work in virtual environments."
+            deactivate
+            rm -rf "${test_env_dir}"
+            exit 1
         fi
 
         # Ensure pip is up to date
@@ -112,8 +130,20 @@ for whl in "${WHEEL_LIST[@]}"; do
 
         for package in "${PACKAGES[@]}"; do
             echo "Testing import for package ${package}..."
-            if ! ${py_exec} -c "import ${package}" &> /dev/null; then
+            if ! ${py_exec} <<'PYTEST'
+import cvcuda
+print('SUCCESS: cvcuda imported')
+s = cvcuda.Stream()
+print('SUCCESS: Stream created')
+t = cvcuda.Tensor((10, 20), cvcuda.Type.U8)
+print('SUCCESS: Tensor created')
+print('SUCCESS: Version:', cvcuda.__version__)
+s.sync()
+print('SUCCESS: Stream synced')
+PYTEST
+            then
                 echo "  Error: Failed to import ${package} with ${py_exec}."
+                echo "  Please check the error output above for details."
                 deactivate
                 rm -rf "${test_env_dir}"
                 exit 1
@@ -121,10 +151,24 @@ for whl in "${WHEEL_LIST[@]}"; do
             echo "  ${package} imported successfully with ${py_exec}."
         done
 
+
         deactivate
         rm -rf "${test_env_dir}"
         echo "Testing with ${py_exec} completed successfully."
+
+        # Increment counter for successfully tested wheels
+        wheels_tested=$((wheels_tested + 1))
     done
 done
 
-echo "All wheels tested successfully."
+# Check if any wheels were actually tested
+if [ ${wheels_tested} -eq 0 ]; then
+    echo "Error: No wheels were successfully tested. All wheels were skipped."
+    echo "This could be due to:"
+    echo "  - No compatible Python versions installed"
+    echo "  - All wheels have invalid Python tags"
+    echo "  - Other configuration issues"
+    exit 1
+fi
+
+echo "All wheels tested successfully. Total tests run: ${wheels_tested}"

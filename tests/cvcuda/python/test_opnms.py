@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2023 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2023-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,10 +15,10 @@
 
 import torch
 import cvcuda
+
 import cvcuda_util as util
 import pytest as t
 import numpy as np
-
 
 RNG = np.random.default_rng(0)
 
@@ -109,10 +109,10 @@ def test_op_nms_content(num_samples, num_bboxes):
         size=(num_samples, num_bboxes, 4),
         dtype=np.int16,
     )
-    t_src = util.to_nvcv_tensor(a_src, "NWC")
+    t_src = util.to_cvcuda_tensor(a_src, "NWC")
 
     a_scores = RNG.random(size=(num_samples, num_bboxes, 1), dtype=np.float32)
-    t_scores = util.to_nvcv_tensor(a_scores, "NWC")
+    t_scores = util.to_cvcuda_tensor(a_scores, "NWC")
 
     score_threshold = 0.22
     iou_threshold = 0.51

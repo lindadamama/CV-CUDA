@@ -49,7 +49,7 @@ static void dbgImage(std::vector<uint8_t> &in, int rowStride)
 static void WriteData(const nvcv::TensorDataAccessStridedImagePlanar &data, uint8_t val, int crop_rows,
                       int crop_columns)
 {
-    EXPECT_TRUE(NVCV_TENSOR_NHWC == data.layout() || NVCV_TENSOR_HWC == data.layout());
+    EXPECT_TRUE(data.layout() == NVCV_TENSOR_NHWC || data.layout() == NVCV_TENSOR_HWC);
     EXPECT_LE(crop_columns, data.numCols());
     EXPECT_LE(crop_rows, data.numRows());
 

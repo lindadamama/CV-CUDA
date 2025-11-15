@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2023-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2023-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -66,6 +66,12 @@ inline void GoldNMS(const std::vector<uint8_t> &srcBBVec, std::vector<uint8_t> &
                     const std::vector<uint8_t> &srcScVec, const long2 &srcBBStrides, const long2 &dstMkStrides,
                     const long2 &srcScStrides, const int2 &shape, float scoreThreshold, float iouThreshold)
 {
+    // Suppress false positive dangling reference warnings from g++-13/14
+    // ValueAt returns references to vector elements, not temporaries
+#if defined(__GNUC__) && __GNUC__ >= 13
+#    pragma GCC diagnostic push
+#    pragma GCC diagnostic ignored "-Wdangling-reference"
+#endif
     for (int x = 0; x < shape.x; ++x)
     {
         for (int y1 = 0; y1 < shape.y; ++y1)
@@ -105,6 +111,9 @@ inline void GoldNMS(const std::vector<uint8_t> &srcBBVec, std::vector<uint8_t> &
             dst = discard ? 0 : 1;
         }
     }
+#if defined(__GNUC__) && __GNUC__ >= 13
+#    pragma GCC diagnostic pop
+#endif
 }
 
 // clang-format off
@@ -269,4 +278,9 @@ TEST_P(OpNonMaximumSuppression_Negative, op)
 
     ASSERT_EQ(cudaSuccess, cudaStreamSynchronize(stream));
     ASSERT_EQ(cudaSuccess, cudaStreamDestroy(stream));
+}
+
+TEST(OpNonMaximumSuppression_Negative, create_with_null_handle)
+{
+    EXPECT_EQ(NVCV_ERROR_INVALID_ARGUMENT, cvcudaNonMaximumSuppressionCreate(nullptr));
 }

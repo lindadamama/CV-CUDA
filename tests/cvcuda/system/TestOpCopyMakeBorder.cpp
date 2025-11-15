@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2023-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2023-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -734,7 +734,7 @@ TEST(OpCopyMakeBorder_Negative, invalid_out_size)
         nvcv::Tensor imgSrc(numBatches, {srcWidth, srcHeight}, fmt);
         nvcv::Tensor imgDst(numBatches, {dstWidth, dstHeight}, fmt);
 
-        // Generate test result
+        // Run operator
         cvcuda::CopyMakeBorder cpyMakeBorderOp;
         EXPECT_EQ(
             NVCV_ERROR_INVALID_ARGUMENT,
@@ -753,6 +753,8 @@ NVCV_TEST_SUITE_P(OpCopyMakeBorderVarshape_Negative, test::ValueList<nvcv::Image
     {nvcv::FMT_RGBf16, nvcv::FMT_RGBf16, nvcv::FMT_S32, nvcv::FMT_S32, NVCV_BORDER_CONSTANT},
     {nvcv::FMT_RGB8, nvcv::FMT_RGB8, nvcv::FMT_F32, nvcv::FMT_S32, NVCV_BORDER_CONSTANT},
     {nvcv::FMT_RGB8, nvcv::FMT_RGB8, nvcv::FMT_S32, nvcv::FMT_F32, NVCV_BORDER_CONSTANT},
+    {nvcv::FMT_RGB8, nvcv::FMT_RGB8, nvcv::FMT_RGB8p, nvcv::FMT_S32, NVCV_BORDER_CONSTANT},
+    {nvcv::FMT_RGB8, nvcv::FMT_RGB8, nvcv::FMT_S32, nvcv::FMT_RGB8p, NVCV_BORDER_CONSTANT},
 #ifndef ENABLE_SANITIZER
     {nvcv::FMT_RGB8, nvcv::FMT_RGB8, nvcv::FMT_S32, nvcv::FMT_S32, static_cast<NVCVBorderType>(255)},
 #endif
@@ -809,9 +811,14 @@ TEST_P(OpCopyMakeBorderVarshape_Negative, op)
     nvcv::Tensor inTop(1, {numBatches, 1}, topPadFmt);
     nvcv::Tensor inLeft(1, {numBatches, 1}, leftPadDmt);
 
-    // Generate test result
+    // Run operator
     cvcuda::CopyMakeBorder cpyMakeBorderOp;
     EXPECT_EQ(NVCV_ERROR_INVALID_ARGUMENT,
               nvcv::ProtectCall(
                   [&] { cpyMakeBorderOp(stream, imgBatchSrc, imgBatchDst, inTop, inLeft, borderType, borderValue); }));
+}
+
+TEST(OpCopyMakeBorder_Negative, create_null_handle)
+{
+    EXPECT_EQ(cvcudaCopyMakeBorderCreate(nullptr), NVCV_ERROR_INVALID_ARGUMENT);
 }

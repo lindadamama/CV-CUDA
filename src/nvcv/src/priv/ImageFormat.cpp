@@ -374,6 +374,10 @@ ImageFormat ImageFormat::FromPlanes(const util::StaticVector<ImageFormat, 4> &fm
         if (i >= 1)
         {
             // color spec, mem layout and data type of all planes must be the same
+            if (fmtPlanes[i].rawPattern() != rawPattern)
+            {
+                throw Exception(NVCV_ERROR_INVALID_ARGUMENT) << "Raw pattern of all plane formats must be the same";
+            }
             if (fmtPlanes[i].colorFormat() != colorFormat)
             {
                 throw Exception(NVCV_ERROR_INVALID_ARGUMENT) << "Color format of all plane formats must be the same";
@@ -387,10 +391,6 @@ ImageFormat ImageFormat::FromPlanes(const util::StaticVector<ImageFormat, 4> &fm
             {
                 throw Exception(NVCV_ERROR_INVALID_ARGUMENT)
                     << "Data type of all plane formats must be the same, but plane #" << i << "'s is " << dataKind;
-            }
-            if (fmtPlanes[i].rawPattern() != rawPattern)
-            {
-                throw Exception(NVCV_ERROR_INVALID_ARGUMENT) << "Raw pattern of all plane formats must be the same";
             }
         }
 
@@ -873,6 +873,7 @@ NVCVSwizzle ImageFormat::planeSwizzle(int plane) const
         case NVCV_CHANNEL_Y:
         case NVCV_CHANNEL_Z:
         case NVCV_CHANNEL_W:
+            // coverity[underrun-local]
             plsw[tch[i] - NVCV_CHANNEL_X] = (NVCVChannel)((i - ch) + (int)NVCV_CHANNEL_X);
             empty                         = false;
             break;

@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2022-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2022-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,6 +20,7 @@
 /build_*/
 /install/
 /cvcuda-installer*/
+/.cache/
 
 # Visual Studio Code
 # ------------------
@@ -48,7 +49,10 @@ ipython_config.py
 
 # Documentation
 # -------------
+_c_api
+_cpp_api
 _c_cpp_api
+_python_api
 _cvcuda_api
 
 # Samples

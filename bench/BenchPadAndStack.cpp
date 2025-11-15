@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2023 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2023-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -45,8 +45,8 @@ try
     nvcv::Tensor top({{srcShape.x, 1, 1, 1}, "NHWC"}, nvcv::TYPE_S32);
     nvcv::Tensor left({{srcShape.x, 1, 1, 1}, "NHWC"}, nvcv::TYPE_S32);
 
-    benchutils::FillTensor<int>(top, [&srcShape](const long4 &){ return srcShape.y / 2; });
-    benchutils::FillTensor<int>(left, [&srcShape](const long4 &){ return srcShape.z / 2; });
+    benchutils::FillTensor<int>(top, [&srcShape](const long4_16a &){ return srcShape.y / 2; });
+    benchutils::FillTensor<int>(left, [&srcShape](const long4_16a &){ return srcShape.z / 2; });
 
     if (varShape < 0) // negative var shape means use Tensor
     {

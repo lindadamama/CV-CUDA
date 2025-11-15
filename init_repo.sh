@@ -1,6 +1,6 @@
 #!/bin/bash -e
 
-# SPDX-FileCopyrightText: Copyright (c) 2022 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2022-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,8 +31,8 @@ skip_precommit=0
 if ! which pre-commit || ! which shellcheck ; then
     echo 'pre-commit must be fully configured.'
     if [[ "$distro_name" = "Ubuntu" ]]; then
-        if [[ $(version_le "$distro_ver" "18.04") ]]; then
-            echo "Ubuntu v$distro_ver is too old, you need at least Ubuntu 20.04."
+        if [[ $(version_le "$distro_ver" "20.04") ]]; then
+            echo "Ubuntu v$distro_ver is too old, you need at least Ubuntu 22.04."
             skip_precommit=1
         elif [[ $(version_le "$distro_ver" "21.10") ]]; then
             echo "Try 'sudo apt-get install -y pip shellcheck && sudo pip install pre-commit'."

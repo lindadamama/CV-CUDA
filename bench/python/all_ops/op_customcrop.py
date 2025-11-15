@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2023-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2023-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,13 +19,12 @@ import pycuda.driver as cuda  # noqa: F401
 
 from bench_utils import AbstractOpBase
 import cvcuda
-import nvcv
 
 
 class OpCustomCrop(AbstractOpBase):
     def setup(self, input):
         super().setup(input)
-        self.rectI = nvcv.RectI(x=30, y=40, width=420, height=390)
+        self.rectI = cvcuda.RectI(x=30, y=40, width=420, height=390)
 
     def run(self, input):
         return cvcuda.customcrop(input, self.rectI)

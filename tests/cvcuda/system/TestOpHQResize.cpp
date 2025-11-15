@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2024-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -684,7 +684,9 @@ NVCV_TYPED_TEST_SUITE(
         NVCV_TEST_ROW(3, NVCV_SHAPE2D(31, 244), NVCV_SHAPE2D(311, 122), 3, float, float, NVCV_INTERP_CUBIC),
         NVCV_TEST_ROW(4, NVCV_SHAPE2D(41, 41), NVCV_SHAPE2D(244, 244), 4, float, float, NVCV_INTERP_GAUSSIAN),
         NVCV_TEST_ROW(3, NVCV_SHAPE2D(769, 211), NVCV_SHAPE2D(40, 40), 7, float, float, NVCV_INTERP_LANCZOS),
-        NVCV_TEST_ROW(1, NVCV_SHAPE2D(1 << 14, 1 << 13), NVCV_SHAPE2D(512, 256), 7, float, float, NVCV_INTERP_LINEAR)>);
+        NVCV_TEST_ROW(1, NVCV_SHAPE2D(1 << 14, 1 << 13), NVCV_SHAPE2D(512, 256), 7, float, float, NVCV_INTERP_LINEAR),
+
+        NVCV_TEST_ROW(1, NVCV_SHAPE2D(8192, 8192), NVCV_SHAPE2D(32, 32), 1, uchar, uchar, NVCV_INTERP_LANCZOS)>);
 
 template<typename TypeParam>
 void TestTensor(bool antialias)
@@ -842,9 +844,9 @@ TYPED_TEST(OpHQResizeTensor3D, correct_output_with_antialias)
     auto inAccess  = nvcv::TensorDataAccessStridedImagePlanar::Create(*inData);
     auto outAccess = nvcv::TensorDataAccessStridedImagePlanar::Create(*outData);
     ASSERT_TRUE(inAccess && outAccess);
-    long4 inStrides{inAccess->colStride(), inAccess->rowStride(), inAccess->depthStride(),
-                    inAccess->sampleStride() == 0 ? inAccess->depthStride() * inShape.z : inAccess->sampleStride()};
-    long4 outStrides{
+    long4_16a inStrides{inAccess->colStride(), inAccess->rowStride(), inAccess->depthStride(),
+                        inAccess->sampleStride() == 0 ? inAccess->depthStride() * inShape.z : inAccess->sampleStride()};
+    long4_16a outStrides{
         outAccess->colStride(), outAccess->rowStride(), outAccess->depthStride(),
         outAccess->sampleStride() == 0 ? outAccess->depthStride() * outShape.z : outAccess->sampleStride()};
 
@@ -1168,12 +1170,12 @@ TYPED_TEST(OpHQResizeBatch, tensor_batch_3d_correct_output)
         auto outAccess = nvcv::TensorDataAccessStridedImagePlanar::Create(*outData);
         ASSERT_TRUE(inAccess && outAccess);
 
-        long4 inStrides{inAccess->colStride(), inAccess->rowStride(), inAccess->depthStride(),
-                        inAccess->sampleStride() == 0 ? inAccess->depthStride() * inShapes[sampleIdx].extent[0]
-                                                      : inAccess->sampleStride()};
-        long4 outStrides{outAccess->colStride(), outAccess->rowStride(), outAccess->depthStride(),
-                         outAccess->sampleStride() == 0 ? outAccess->depthStride() * outShapes[sampleIdx].extent[0]
-                                                        : outAccess->sampleStride()};
+        long4_16a inStrides{inAccess->colStride(), inAccess->rowStride(), inAccess->depthStride(),
+                            inAccess->sampleStride() == 0 ? inAccess->depthStride() * inShapes[sampleIdx].extent[0]
+                                                          : inAccess->sampleStride()};
+        long4_16a outStrides{outAccess->colStride(), outAccess->rowStride(), outAccess->depthStride(),
+                             outAccess->sampleStride() == 0 ? outAccess->depthStride() * outShapes[sampleIdx].extent[0]
+                                                            : outAccess->sampleStride()};
 
         ASSERT_EQ(inAccess->numSamples(), 1);
         ASSERT_EQ(outAccess->numSamples(), 1);
@@ -1416,4 +1418,103 @@ TEST(OpHQResizeImageBatch, test_multi_run_single_workspace)
         ws = cvcuda::AllocateWorkspace(op.getWorkspaceRequirements(std::max(numSamples0, numSamples1), maxShape)));
     TestImageBatch<FirstRun>(numSamples0, inShapes0, outShapes0, ws, false);
     TestImageBatch<SecondRun>(numSamples1, inShapes1, outShapes1, ws, false);
+}
+
+TEST(OpHQResizeNegative, createWithNullHandle)
+{
+    EXPECT_EQ(NVCV_ERROR_INVALID_ARGUMENT, cvcudaHQResizeCreate(nullptr));
+}
+
+TEST(OpHQResizeNegative, getWorkspaceRequirementsWithNullReqOut)
+{
+    NVCVOperatorHandle op;
+    EXPECT_EQ(NVCV_SUCCESS, cvcudaHQResizeCreate(&op));
+    HQResizeTensorShapeI shapeIn, shapeOut;
+    shapeIn.extent[0]    = 128;
+    shapeIn.ndim         = 1;
+    shapeIn.numChannels  = 1;
+    shapeOut.extent[0]   = 64;
+    shapeOut.ndim        = 1;
+    shapeOut.numChannels = 1;
+
+    HQResizeRoiF roi;
+    roi.lo[0] = 0;
+    roi.hi[0] = 128;
+
+    EXPECT_EQ(NVCV_ERROR_INVALID_ARGUMENT,
+              cvcudaHQResizeTensorGetWorkspaceRequirements(op, 1, shapeIn, shapeOut, NVCV_INTERP_LINEAR,
+                                                           NVCV_INTERP_LINEAR, false, &roi, nullptr));
+    EXPECT_EQ(NVCV_ERROR_INVALID_ARGUMENT, cvcudaHQResizeGetMaxWorkspaceRequirements(op, 1, shapeIn, nullptr));
+    EXPECT_NO_THROW(nvcvOperatorDestroy(op));
+}
+
+TEST(OpHQResizeNegative, submitWithNullWorkspace)
+{
+    NVCVOperatorHandle op;
+    EXPECT_EQ(NVCV_SUCCESS, cvcudaHQResizeCreate(&op));
+
+    HQResizeRoiF roi;
+    roi.lo[0] = 0;
+    roi.hi[0] = 128;
+
+    EXPECT_EQ(NVCV_ERROR_INVALID_ARGUMENT, cvcudaHQResizeSubmit(op, nullptr, nullptr, nullptr, nullptr,
+                                                                NVCV_INTERP_LINEAR, NVCV_INTERP_LINEAR, false, &roi));
+    EXPECT_NO_THROW(nvcvOperatorDestroy(op));
+}
+
+TEST(OpHQResizeNegative, submitWithNullWorkspaceBatch)
+{
+    NVCVOperatorHandle op;
+    EXPECT_EQ(NVCV_SUCCESS, cvcudaHQResizeCreate(&op));
+
+    HQResizeRoiF roi[1];
+    roi[0].lo[0] = 0;
+    roi[0].hi[0] = 128;
+    HQResizeRoisF rois;
+    rois.roi  = roi;
+    rois.size = 1;
+    rois.ndim = 1;
+
+    EXPECT_EQ(NVCV_ERROR_INVALID_ARGUMENT,
+              cvcudaHQResizeImageBatchSubmit(op, nullptr, nullptr, nullptr, nullptr, NVCV_INTERP_LINEAR,
+                                             NVCV_INTERP_LINEAR, false, rois));
+    EXPECT_EQ(NVCV_ERROR_INVALID_ARGUMENT,
+              cvcudaHQResizeTensorBatchSubmit(op, nullptr, nullptr, nullptr, nullptr, NVCV_INTERP_LINEAR,
+                                              NVCV_INTERP_LINEAR, false, rois));
+    EXPECT_NO_THROW(nvcvOperatorDestroy(op));
+}
+
+TEST(OpHQResizeNegative, getWorkspaceRequirementsWithNullReqOutBatch)
+{
+    NVCVOperatorHandle op;
+    EXPECT_EQ(NVCV_SUCCESS, cvcudaHQResizeCreate(&op));
+    HQResizeTensorShapeI shapeIn[1], shapeOut[1];
+    shapeIn[0].extent[0]    = 128;
+    shapeIn[0].ndim         = 1;
+    shapeIn[0].numChannels  = 1;
+    shapeOut[0].extent[0]   = 64;
+    shapeOut[0].ndim        = 1;
+    shapeOut[0].numChannels = 1;
+
+    HQResizeTensorShapesI shapeInBatch, shapeOutBatch;
+    shapeInBatch.shape       = shapeIn;
+    shapeInBatch.size        = 1;
+    shapeInBatch.ndim        = 1;
+    shapeInBatch.numChannels = 1;
+    shapeOutBatch.shape      = shapeOut;
+    shapeOutBatch.size       = 1;
+    shapeOutBatch.ndim       = 1;
+
+    HQResizeRoiF roi[1];
+    roi[0].lo[0] = 0;
+    roi[0].hi[0] = 128;
+    HQResizeRoisF rois;
+    rois.roi  = roi;
+    rois.size = 1;
+    rois.ndim = 1;
+
+    EXPECT_EQ(NVCV_ERROR_INVALID_ARGUMENT,
+              cvcudaHQResizeTensorBatchGetWorkspaceRequirements(op, 1, shapeInBatch, shapeOutBatch, NVCV_INTERP_LINEAR,
+                                                                NVCV_INTERP_LINEAR, false, rois, nullptr));
+    EXPECT_NO_THROW(nvcvOperatorDestroy(op));
 }

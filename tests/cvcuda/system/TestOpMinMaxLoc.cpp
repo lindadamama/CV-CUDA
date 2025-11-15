@@ -499,6 +499,8 @@ TEST(OpMinMaxLoc_Negative, op)
     nvcv::Tensor in       = nvcv::util::CreateTensor(inShape.z, inShape.x, inShape.y, nvcv::FMT_U8);
     nvcv::Tensor inInvalidSamples
         = nvcv::util::CreateTensor(65536, inShape.x, inShape.y, nvcv::FMT_U8); // wrong number of samples
+    nvcv::Tensor inInvalidChannels
+        = nvcv::util::CreateTensor(inShape.z, inShape.x, inShape.y, nvcv::FMT_RGB8); // wrong number of channels
 
     // clang-format off
 
@@ -537,6 +539,7 @@ TEST(OpMinMaxLoc_Negative, op)
 
     // cases
     runOpMinMaxLocNegativeTest(inInvalidSamples, minVal, minLoc, numMin, maxVal, maxLoc, numMax);
+    runOpMinMaxLocNegativeTest(inInvalidChannels, minVal, minLoc, numMin, maxVal, maxLoc, numMax);
 
     runOpMinMaxLocNegativeTest(in, nullptr, minLoc, numMin, maxVal, maxLoc, numMax);
     runOpMinMaxLocNegativeTest(in, minVal, nullptr, numMin, maxVal, maxLoc, numMax);
@@ -577,4 +580,39 @@ TEST(OpMinMaxLoc_Negative, op)
 TEST(OpMinMaxLoc_Negative, create_with_null_handle)
 {
     EXPECT_EQ(NVCV_ERROR_INVALID_ARGUMENT, cvcudaMinMaxLocCreate(nullptr));
+}
+
+TEST(OpMinMaxLoc_Negative, varshape_invalid_plane)
+{
+    int3              inShape{24, 24, 2};
+    nvcv::ImageFormat inFormat{nvcv::FMT_RGB8p};
+    int               capacity = 100;
+
+    std::vector<nvcv::Image> inImg;
+    for (int z = 0; z < inShape.z; ++z)
+    {
+        inImg.emplace_back(nvcv::Size2D{inShape.x, inShape.y}, inFormat);
+    }
+
+    nvcv::ImageBatchVarShape in(inShape.z);
+    in.pushBack(inImg.begin(), inImg.end());
+
+    // clang-format off
+    nvcv::Tensor minVal({{inShape.z}, "N"}, nvcv::TYPE_U8);
+    nvcv::Tensor minLoc({{inShape.z, capacity}, "NM"}, nvcv::TYPE_2S32);
+    nvcv::Tensor numMin({{inShape.z}, "N"}, nvcv::TYPE_S32);
+    // clang-format on
+
+    cudaStream_t stream;
+    ASSERT_EQ(cudaSuccess, cudaStreamCreate(&stream));
+
+    cvcuda::MinMaxLoc op;
+    EXPECT_EQ(NVCV_ERROR_INVALID_ARGUMENT,
+              nvcv::ProtectCall([&] { op(stream, in, minVal, minLoc, numMin, nullptr, nullptr, nullptr); }));
+    char msg[1024];
+    nvcvGetLastErrorMessage(msg, sizeof(msg));
+    std::cout << "\033[33m" << msg << "\033[0m" << std::endl;
+
+    ASSERT_EQ(cudaSuccess, cudaStreamSynchronize(stream));
+    ASSERT_EQ(cudaSuccess, cudaStreamDestroy(stream));
 }

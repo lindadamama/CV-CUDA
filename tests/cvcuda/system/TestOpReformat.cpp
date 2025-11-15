@@ -36,7 +36,7 @@ namespace ttype = nvcv::test::type;
 using uchar = unsigned char;
 
 template<typename T>
-inline T &ValueAt(std::vector<uint8_t> &vec, long4 pitches, int b, int y, int x, int c, nvcv::TensorLayout layout)
+inline T &ValueAt(std::vector<uint8_t> &vec, long4_16a pitches, int b, int y, int x, int c, nvcv::TensorLayout layout)
 {
     if (layout == nvcv::TENSOR_NHWC || layout == nvcv::TENSOR_HWC)
     {
@@ -50,8 +50,8 @@ inline T &ValueAt(std::vector<uint8_t> &vec, long4 pitches, int b, int y, int x,
 }
 
 template<typename T>
-inline void Reformat(std::vector<uint8_t> &hDst, long4 dstStrides, nvcv::TensorLayout dstLayout,
-                     std::vector<uint8_t> &hSrc, long4 srcStrides, nvcv::TensorLayout srcLayout, int numBatches,
+inline void Reformat(std::vector<uint8_t> &hDst, long4_16a dstStrides, nvcv::TensorLayout dstLayout,
+                     std::vector<uint8_t> &hSrc, long4_16a srcStrides, nvcv::TensorLayout srcLayout, int numBatches,
                      int numRows, int numCols, int numChannels)
 {
     for (int b = 0; b < numBatches; ++b)
@@ -118,8 +118,8 @@ TYPED_TEST(OpReformat, correct_output)
 
     ASSERT_EQ(inAccess->numChannels(), outAccess->numChannels());
 
-    long4 inStrides;
-    long4 outStrides;
+    long4_16a inStrides;
+    long4_16a outStrides;
 
     if (inData->rank() == 3)
     {
@@ -139,8 +139,8 @@ TYPED_TEST(OpReformat, correct_output)
     }
     else if (inData->rank() == 4)
     {
-        inStrides  = long4{inData->stride(0), inData->stride(1), inData->stride(2), inData->stride(3)};
-        outStrides = long4{outData->stride(0), outData->stride(1), outData->stride(2), outData->stride(3)};
+        inStrides  = long4_16a{inData->stride(0), inData->stride(1), inData->stride(2), inData->stride(3)};
+        outStrides = long4_16a{outData->stride(0), outData->stride(1), outData->stride(2), outData->stride(3)};
     }
 
     int numBatches  = inAccess->numSamples();

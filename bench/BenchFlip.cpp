@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2023-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2023-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -75,7 +75,7 @@ try
 
         nvcv::Tensor flipCodeTensor({{shape.x}, "N"}, nvcv::TYPE_S32);
 
-        benchutils::FillTensor<int>(flipCodeTensor, [&flipCode](const long4 &){ return flipCode; });
+        benchutils::FillTensor<int>(flipCodeTensor, [&flipCode](const long4_16a &){ return flipCode; });
 
         state.exec(nvbench::exec_tag::sync, [&op, &src, &dst, &flipCodeTensor](nvbench::launch &launch)
         {

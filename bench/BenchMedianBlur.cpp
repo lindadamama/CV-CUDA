@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2023-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2023-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -62,7 +62,7 @@ try
         nvcv::Tensor kernelSizeTensor({{shape.x, 2}, "NW"}, nvcv::TYPE_S32);
 
         benchutils::FillTensor<int>(kernelSizeTensor,
-                                    [&kernelSize](const long4 &c){ return nvcv::cuda::GetElement(kernelSize, c.y); });
+                                    [&kernelSize](const long4_16a &c){ return nvcv::cuda::GetElement(kernelSize, c.y); });
 
         state.exec(nvbench::exec_tag::sync, [&op, &src, &dst, &kernelSizeTensor](nvbench::launch &launch)
         {

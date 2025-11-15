@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2023-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2023-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -219,7 +219,17 @@ public:
              typename = detail::EnableIf_t<detail::IsInvocableR<Ret, std::function<FunctionSig>, Args...>::value>>
     Callback(const std::function<FunctionSig> &f)
     {
-        if (FunctionSig *const *fn = f.template target<FunctionSig *>())
+        // Suppress false positive warning from g++-12-14 about std::function::target()
+#if defined(__GNUC__) && __GNUC__ >= 12
+#    pragma GCC diagnostic push
+#    pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#endif
+        // Call target() separately to work around false positive warning in g++-12-14
+        auto fn = f.template target<FunctionSig *>();
+#if defined(__GNUC__) && __GNUC__ >= 12
+#    pragma GCC diagnostic pop
+#endif
+        if (fn && *fn)
             fromFunction(*fn);
         else
             fromCallable(f);
@@ -467,7 +477,9 @@ private:
              typename = detail::EnableIf_t<detail::IsInvocableR<Ret, std::function<FunctionSig>, Args...>::value>>
     static bool requiresCleanupImpl(const std::function<FunctionSig> &f)
     {
-        return f.template target<FunctionType *>() == nullptr;
+        // Call target() separately to work around false positive warning in g++-12-14
+        auto fn = f.template target<FunctionType *>();
+        return fn == nullptr || *fn == nullptr;
     }
 
     WrappedFunc *m_call    = nullptr;

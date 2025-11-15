@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2022-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2022-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,7 +17,8 @@
 
 #include "DeviceMathWrappers.hpp" // to test in the device
 
-#include <common/TypedTests.hpp>              // for NVCV_TYPED_TEST_SUITE, etc.
+#include <common/TypedTests.hpp> // for NVCV_TYPED_TEST_SUITE, etc.
+#include <cvcuda/cuda_tools/Compat.hpp>
 #include <cvcuda/cuda_tools/MathOps.hpp>      // for operator == to allow EXPECT_EQ
 #include <cvcuda/cuda_tools/MathWrappers.hpp> // the object of this test
 
@@ -47,8 +48,8 @@ NVCV_TYPED_TEST_SUITE(
     ttype::Types<ttype::Value<uint2{0, 123456}>, ttype::Value<uint2{0, 123456}>, ttype::Value<cuda::RoundMode::DOWN>>,
     ttype::Types<ttype::Value<float3{-1.23456f, 0.789f, 3.456f}>,
                  ttype::Value<float3{-1.f, 1.f, 3.f}>, ttype::Value<cuda::RoundMode::DEFAULT>>,
-    ttype::Types<ttype::Value<double4{1.23456, 6.789, epsilon<double>, -4.567}>,
-                 ttype::Value<double4{1.0, 7.0, 0.0, -5.0}>, ttype::Value<cuda::RoundMode::NEAREST>>,
+    ttype::Types<ttype::Value<double4_16a{1.23456, 6.789, epsilon<double>, -4.567}>,
+                 ttype::Value<double4_16a{1.0, 7.0, 0.0, -5.0}>, ttype::Value<cuda::RoundMode::NEAREST>>,
     // unusual round modes
     ttype::Types<ttype::Value<float2{-1.23456f, 0.789f}>, ttype::Value<float2{-1.f, 1.f}>, ttype::Value<cuda::RoundMode::UP>>,
     ttype::Types<ttype::Value<double2{1.789, -6.123}>, ttype::Value<double2{1.0, -7.0}>, ttype::Value<cuda::RoundMode::DOWN>>,
@@ -96,8 +97,8 @@ NVCV_TYPED_TEST_SUITE(
     // CUDA compound types passing different type
     ttype::Types<int, ttype::Value<float3{-1.23456f, 0.789f, 3.456f}>,
                       ttype::Value<int3{-1, 1, 3}>, ttype::Value<cuda::RoundMode::NEAREST>>,
-    ttype::Types<long, ttype::Value<double4{1.23456, 6.789, epsilon<double>, -4.567}>,
-                       ttype::Value<long4{1, 7, 0, -5}>, ttype::Value<cuda::RoundMode::DEFAULT>>,
+    ttype::Types<long, ttype::Value<double4_16a{1.23456, 6.789, epsilon<double>, -4.567}>,
+                       ttype::Value<long4_16a{1, 7, 0, -5}>, ttype::Value<cuda::RoundMode::DEFAULT>>,
     // regular C types and CUDA compound types passing same type
     ttype::Types<schar, ttype::Value<schar{123}>, ttype::Value<schar{123}>, ttype::Value<cuda::RoundMode::UP>>,
     ttype::Types<float, ttype::Value<float2{-4.56f, 7.89f}>,
@@ -163,8 +164,8 @@ NVCV_TYPED_TEST_SUITE(
     ttype::Types<ttype::Value<uint2{2, 3}>, ttype::Value<uint2{3, 2}>, ttype::Value<uint2{2, 2}>>,
     ttype::Types<ttype::Value<float3{1.23f, 2.34f, 3.45f}>, ttype::Value<float3{2.34f, -1.23f, 4.56f}>,
                  ttype::Value<float3{1.23f, -1.23f, 3.45f}>>,
-    ttype::Types<ttype::Value<double4{1.2, 2.3, -3.4, 5.6}>, ttype::Value<double4{2.3, 3.4, -4.5, 0.1}>,
-                 ttype::Value<double4{1.2, 2.3, -4.5, 0.1}>>,
+    ttype::Types<ttype::Value<double4_16a{1.2, 2.3, -3.4, 5.6}>, ttype::Value<double4_16a{2.3, 3.4, -4.5, 0.1}>,
+                 ttype::Value<double4_16a{1.2, 2.3, -4.5, 0.1}>>,
     // CUDA compound types subject to SIMD
     ttype::Types<ttype::Value<short2{1234, -4567}>, ttype::Value<short2{-1234, 4567}>,
                  ttype::Value<short2{-1234, -4567}>>,
@@ -218,8 +219,8 @@ NVCV_TYPED_TEST_SUITE(
     ttype::Types<ttype::Value<uint2{2, 3}>, ttype::Value<uint2{3, 2}>, ttype::Value<uint2{3, 3}>>,
     ttype::Types<ttype::Value<float3{1.23f, 2.34f, 3.45f}>, ttype::Value<float3{2.34f, -1.23f, 4.56f}>,
                  ttype::Value<float3{2.34f, 2.34f, 4.56f}>>,
-    ttype::Types<ttype::Value<double4{1.2, 2.3, -3.4, 5.6}>, ttype::Value<double4{2.3, 3.4, -4.5, 0.1}>,
-                 ttype::Value<double4{2.3, 3.4, -3.4, 5.6}>>,
+    ttype::Types<ttype::Value<double4_16a{1.2, 2.3, -3.4, 5.6}>, ttype::Value<double4_16a{2.3, 3.4, -4.5, 0.1}>,
+                 ttype::Value<double4_16a{2.3, 3.4, -3.4, 5.6}>>,
     // CUDA compound types subject to SIMD
     ttype::Types<ttype::Value<short2{1234, -4567}>, ttype::Value<short2{-1234, 4567}>,
                  ttype::Value<short2{1234, 4567}>>,
@@ -272,8 +273,8 @@ NVCV_TYPED_TEST_SUITE(
     ttype::Types<ttype::Value<char1{1}>, ttype::Value<char1{126}>, ttype::Value<char1{1}>>,
     ttype::Types<ttype::Value<uint2{2, 3}>, ttype::Value<uint2{3, 2}>, ttype::Value<uint2{8, 9}>>,
     ttype::Types<ttype::Value<float3{0.f, 1.f, 2.f}>, ttype::Value<int{2}>, ttype::Value<float3{0.f, 1.f, 4.f}>>,
-    ttype::Types<ttype::Value<double4{1.0, -2.0, 4.0, -6.0}>, ttype::Value<float4{2.789f, 2.f, 1.f, 0.f}>,
-                 ttype::Value<double4{1.0, 4.0, 4.0, 1.0}>>
+    ttype::Types<ttype::Value<double4_16a{1.0, -2.0, 4.0, -6.0}>, ttype::Value<float4{2.789f, 2.f, 1.f, 0.f}>,
+                 ttype::Value<double4_16a{1.0, 4.0, 4.0, 1.0}>>
     >);
 
 // clang-format on
@@ -317,7 +318,7 @@ NVCV_TYPED_TEST_SUITE(
     ttype::Types<ttype::Value<char1{1}>, ttype::Value<char1{2}>>,
     ttype::Types<ttype::Value<uint2{2, 3}>, ttype::Value<uint2{7, 20}>>,
     ttype::Types<ttype::Value<float3{0.f, -0.f, 0.f}>, ttype::Value<float3{1.f, 1.f, 1.f}>>,
-    ttype::Types<ttype::Value<double4{0.0, -0.0, 0.0, 0.0}>, ttype::Value<double4{1.0, 1.0, 1.0, 1.0}>>
+    ttype::Types<ttype::Value<double4_16a{0.0, -0.0, 0.0, 0.0}>, ttype::Value<double4_16a{1.0, 1.0, 1.0, 1.0}>>
     >);
 
 // clang-format on
@@ -359,7 +360,7 @@ NVCV_TYPED_TEST_SUITE(
     ttype::Types<ttype::Value<char1{4}>, ttype::Value<char1{2}>>,
     ttype::Types<ttype::Value<uint2{1, 4}>, ttype::Value<uint2{1, 2}>>,
     ttype::Types<ttype::Value<float3{4.f, 16.f, 25.f}>, ttype::Value<float3{2.f, 4.f, 5.f}>>,
-    ttype::Types<ttype::Value<double4{36.0, 49.0, 64.0, 81.0}>, ttype::Value<double4{6.0, 7.0, 8.0, 9.0}>>
+    ttype::Types<ttype::Value<double4_16a{36.0, 49.0, 64.0, 81.0}>, ttype::Value<double4_16a{6.0, 7.0, 8.0, 9.0}>>
     >);
 
 // clang-format on
@@ -401,7 +402,7 @@ NVCV_TYPED_TEST_SUITE(
     ttype::Types<ttype::Value<char1{-1}>, ttype::Value<char1{1}>>,
     ttype::Types<ttype::Value<uint2{1, 2}>, ttype::Value<uint2{1, 2}>>,
     ttype::Types<ttype::Value<float3{-1.f, 2.f, -3.f}>, ttype::Value<float3{1.f, 2.f, 3.f}>>,
-    ttype::Types<ttype::Value<double4{-4.0, -5.0, -6.0, 7.0}>, ttype::Value<double4{4.0, 5.0, 6.0, 7.0}>>,
+    ttype::Types<ttype::Value<double4_16a{-4.0, -5.0, -6.0, 7.0}>, ttype::Value<double4_16a{4.0, 5.0, 6.0, 7.0}>>,
     // CUDA compound types subject to SIMD
     ttype::Types<ttype::Value<short2{-1234, -4567}>, ttype::Value<short2{1234, 4567}>>,
     ttype::Types<ttype::Value<char4{-12, -34, -56, -78}>, ttype::Value<char4{12, 34, 56, 78}>>
@@ -447,8 +448,8 @@ NVCV_TYPED_TEST_SUITE(
     ttype::Types<ttype::Value<uint2{2, 3}>, ttype::Value<uint2{0, 1}>, ttype::Value<uint2{1, 4}>, ttype::Value<uint2{1, 3}>>,
     ttype::Types<ttype::Value<float3{-1.f, 2.f, -3.f}>, ttype::Value<short{0}>, ttype::Value<short{1}>,
                  ttype::Value<float3{0.f, 1.f, 0.f}>>,
-    ttype::Types<ttype::Value<double4{4.0, 5.0, 6.0, 7.0}>, ttype::Value<int4{-4, 6, -6, 0}>,
-                 ttype::Value<int4{2, 7, 6, 8}>, ttype::Value<double4{2.0, 6.0, 6.0, 7.0}>>
+    ttype::Types<ttype::Value<double4_16a{4.0, 5.0, 6.0, 7.0}>, ttype::Value<int4{-4, 6, -6, 0}>,
+                 ttype::Value<int4{2, 7, 6, 8}>, ttype::Value<double4_16a{2.0, 6.0, 6.0, 7.0}>>
     >);
 
 // clang-format on

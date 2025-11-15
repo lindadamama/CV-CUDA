@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2023-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2023-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -41,8 +41,8 @@ namespace cuda  = nvcv::cuda;
 namespace ttype = nvcv::test::type;
 
 template<typename T_Src, typename T_Dst, NVCVBorderType B>
-static void CropFlipNormalizeReformat(std::vector<uint8_t> &hDst, int dstRowStride, long4 outStrides,
-                                      std::vector<uint8_t> &hSrc, int srcRowStride, long4 inStrides,
+static void CropFlipNormalizeReformat(std::vector<uint8_t> &hDst, int dstRowStride, long4_16a outStrides,
+                                      std::vector<uint8_t> &hSrc, int srcRowStride, long4_16a inStrides,
                                       nvcv::Size2D src_size, nvcv::Size2D dst_size, nvcv::ImageFormat fmt,
                                       nvcv::ImageFormat dst_fmt, const float borderValue, int flip_code,
                                       const NVCVRectI &cropRect, const std::vector<float> &hBase, int baseRowStride,
@@ -124,13 +124,13 @@ static void CropFlipNormalizeReformat(std::vector<uint8_t> &hDst, int dstRowStri
                 T_Src out = 0;
                 if (src_planar)
                 {
-                    out = test::ValueAt<B, T_Src>(hSrc, long4{inStrides.x, inStrides.z, inStrides.w, inStrides.y}, size,
-                                                  borderValue, int4{k, coord.x, coord.y, 0});
+                    out = test::ValueAt<B, T_Src>(hSrc, long4_16a{inStrides.x, inStrides.z, inStrides.w, inStrides.y},
+                                                  size, borderValue, int4{k, coord.x, coord.y, 0});
                 }
                 else
                 {
-                    out = test::ValueAt<B, T_Src>(hSrc, long4{inStrides.x, inStrides.y, inStrides.z, inStrides.w}, size,
-                                                  borderValue, int4{k, coord.x, coord.y, 0});
+                    out = test::ValueAt<B, T_Src>(hSrc, long4_16a{inStrides.x, inStrides.y, inStrides.z, inStrides.w},
+                                                  size, borderValue, int4{k, coord.x, coord.y, 0});
                 }
 
                 if (dst_planar)
@@ -351,8 +351,8 @@ const void testCropFlipNormalizeReformatPad(int width, int height, int numImages
 
         NVCVRectI cropRect = {cropVec[4 * i], cropVec[4 * i + 1], cropVec[4 * i + 2], cropVec[4 * i + 3]};
 
-        long4 inStrides;
-        long4 outStrides;
+        long4_16a inStrides;
+        long4_16a outStrides;
 
         bool src_planar = fmt.numPlanes() > 1;
         bool dst_planar = dst_fmt.numPlanes() > 1;
@@ -474,4 +474,65 @@ TYPED_TEST(OpCropFlipNormalizeReformat, correct_output)
     testCropFlipNormalizeReformatPad<InType, OutType, borderMode>(width, height, numImages, scalarBase, scalarScale,
                                                                   flags, globalScale, globalShift, epsilon, fmt,
                                                                   dst_fmt, borderMode);
+}
+
+TEST(OpCropFlipNormalizeReformat_Negative, create_with_null_handle)
+{
+    EXPECT_EQ(NVCV_ERROR_INVALID_ARGUMENT, cvcudaCropFlipNormalizeReformatCreate(nullptr));
+}
+
+TEST(OpCropFlipNormalizeReformat_Negative, invalid_base_channels)
+{
+    cudaStream_t stream;
+    EXPECT_EQ(cudaSuccess, cudaStreamCreate(&stream));
+
+    nvcv::ImageFormat        fmt = nvcv::FMT_RGB8; // 3 channels
+    nvcv::Image              imgSrc(nvcv::Size2D{10, 10}, fmt);
+    nvcv::ImageBatchVarShape batchSrc(1);
+    batchSrc.pushBack(imgSrc);
+    nvcv::Tensor imgDstTensor(1, {10, 10}, fmt);
+    nvcv::Tensor flipCode({{1}, "N"}, nvcv::TYPE_S32);
+    nvcv::Tensor cropRect(
+        {
+            {1, 1, 1, 4},
+            nvcv::TENSOR_NHWC
+    },
+        nvcv::TYPE_S32);
+
+    nvcv::Tensor imgBase(
+        {
+            {1, 1, 1, 3},
+            nvcv::TENSOR_NHWC
+    },
+        nvcv::TYPE_F32); // 3 channels
+    nvcv::Tensor imgBaseInvalid(
+        {
+            {1, 1, 1, 2},
+            nvcv::TENSOR_NHWC
+    },
+        nvcv::TYPE_F32); // 2 channels < 3
+
+    nvcv::Tensor imgScale(
+        {
+            {1, 1, 1, 3},
+            nvcv::TENSOR_NHWC
+    },
+        nvcv::TYPE_F32); // 3 channels
+    nvcv::Tensor imgScaleInvalid(
+        {
+            {1, 1, 1, 2},
+            nvcv::TENSOR_NHWC
+    },
+        nvcv::TYPE_F32); // 2 channels < 3
+
+    cvcuda::CropFlipNormalizeReformat op;
+    EXPECT_THROW(op(stream, batchSrc, imgDstTensor, cropRect, NVCV_BORDER_CONSTANT, 0.0f, flipCode, imgBaseInvalid,
+                    imgScale, 1.0f, 0.0f, 0.0f, 0),
+                 nvcv::Exception);
+
+    EXPECT_THROW(op(stream, batchSrc, imgDstTensor, cropRect, NVCV_BORDER_CONSTANT, 0.0f, flipCode, imgBase,
+                    imgScaleInvalid, 1.0f, 0.0f, 0.0f, 0),
+                 nvcv::Exception);
+
+    EXPECT_EQ(cudaSuccess, cudaStreamDestroy(stream));
 }

@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2023-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2023-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -68,9 +68,9 @@ try
         nvcv::Tensor blockSizeTensor({{shape.x}, "N"}, nvcv::TYPE_S32);
         nvcv::Tensor cTensor({{shape.x}, "N"}, nvcv::TYPE_F64);
 
-        benchutils::FillTensor<double>(maxValueTensor, [&maxValue](const long4 &){ return maxValue; });
-        benchutils::FillTensor<int>(maxValueTensor, [&blockSize](const long4 &){ return blockSize; });
-        benchutils::FillTensor<double>(cTensor, [&c](const long4 &){ return c; });
+        benchutils::FillTensor<double>(maxValueTensor, [&maxValue](const long4_16a &){ return maxValue; });
+        benchutils::FillTensor<int>(blockSizeTensor, [&blockSize](const long4_16a &){ return blockSize; });
+        benchutils::FillTensor<double>(cTensor, [&c](const long4_16a &){ return c; });
 
         state.exec(nvbench::exec_tag::sync,
                    [&op, &src, &dst, &maxValueTensor, &adaptType, &threshType, &blockSizeTensor, &cTensor]

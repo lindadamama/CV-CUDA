@@ -189,15 +189,22 @@ NVCVTensorRequirements Tensor::CalcRequirements(int32_t rank, const int64_t *sha
     return reqs;
 }
 
+void *Tensor::AllocateBuffer(IAllocator &alloc, const NVCVTensorRequirements &reqs)
+{
+    int64_t bufSize = CalcTotalSizeBytes(reqs.mem.cudaMem);
+    void   *buffer  = alloc.allocCudaMem(bufSize, reqs.alignBytes);
+    NVCV_ASSERT(buffer != nullptr);
+    return buffer;
+}
+
 Tensor::Tensor(NVCVTensorRequirements reqs, IAllocator &alloc)
     : m_alloc{alloc}
     , m_reqs{std::move(reqs)}
+    // coverity[ctor_dtor_leak] - m_memBuffer is properly freed in destructor via m_alloc->freeCudaMem
+    , m_memBuffer{AllocateBuffer(alloc, m_reqs)}
 {
     // Assuming reqs are already validated during its creation
-
-    int64_t bufSize = CalcTotalSizeBytes(m_reqs.mem.cudaMem);
-    m_memBuffer     = m_alloc->allocCudaMem(bufSize, m_reqs.alignBytes);
-    NVCV_ASSERT(m_memBuffer != nullptr);
+    // m_memBuffer is now initialized in the member initializer list for exception safety
 }
 
 Tensor::~Tensor()

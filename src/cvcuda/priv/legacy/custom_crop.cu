@@ -1,4 +1,4 @@
-/* Copyright (c) 2021-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+/* Copyright (c) 2021-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  *
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
  * SPDX-License-Identifier: Apache-2.0
@@ -23,6 +23,7 @@
 
 #include "CvCudaUtils.cuh"
 
+#include <cvcuda/cuda_tools/Compat.hpp>
 #include <nvcv/Image.hpp>
 #include <nvcv/ImageData.hpp>
 #include <nvcv/TensorData.hpp>
@@ -146,11 +147,11 @@ ErrorCode CustomCrop::infer(const TensorDataStridedCuda &inData, const TensorDat
                                 NVCVRectI roi, cudaStream_t stream);
 
     static const func_t funcs[6][4] = {
-        {customCrop<uchar1>,  customCrop<uchar2>,  customCrop<uchar3>,  customCrop<uchar4>},
-        {customCrop<ushort>, customCrop<ushort2>, customCrop<ushort3>, customCrop<ushort4>},
-        {   customCrop<int>,    customCrop<int2>,    customCrop<int3>,    customCrop<int4>},
-        {                 0,                   0,                   0,                   0},
-        {customCrop<double>, customCrop<double2>, customCrop<double3>, customCrop<double4>}
+        {customCrop<uchar1>,  customCrop<uchar2>,  customCrop<uchar3>,      customCrop<uchar4>},
+        {customCrop<ushort>, customCrop<ushort2>, customCrop<ushort3>,     customCrop<ushort4>},
+        {   customCrop<int>,    customCrop<int2>,    customCrop<int3>,        customCrop<int4>},
+        {                 0,                   0,                   0,                       0},
+        {customCrop<double>, customCrop<double2>, customCrop<double3>, customCrop<double4_16a>}
     };
 
     return funcs[data_size / 2][channels - 1](inData, outData, roi, stream);

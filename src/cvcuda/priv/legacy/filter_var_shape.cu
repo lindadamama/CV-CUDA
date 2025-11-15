@@ -1,4 +1,4 @@
-/* Copyright (c) 2021-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+/* Copyright (c) 2021-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  *
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
  * SPDX-License-Identifier: Apache-2.0
@@ -395,7 +395,8 @@ ErrorCode LaplacianVarShape::infer(const ImageBatchVarShapeDataStridedCuda &inDa
 
 template<class SrcWrapper, class DstWrapper>
 __global__ void gaussianFilter2D(const SrcWrapper src, DstWrapper dst, cuda::Tensor3DWrap<float, int32_t> kernel,
-                                 cuda::Tensor1DWrap<int2, int32_t> kernelSizeArr)
+                                 cuda::Tensor1DWrap<int2, int32_t> kernelSizeArr, Size2D maxKernelSize,
+                                 cuda::Tensor1DWrap<double2, int32_t> sigmaArr, int dataKernelSize)
 {
     using work_type = cuda::ConvertBaseTypeTo<float, typename DstWrapper::ValueType>;
     work_type res   = cuda::SetAll<work_type>(0);
@@ -407,7 +408,19 @@ __global__ void gaussianFilter2D(const SrcWrapper src, DstWrapper dst, cuda::Ten
     if (x >= dst.width(batch_idx) || y >= dst.height(batch_idx))
         return;
 
-    int2 kernelSize = kernelSizeArr[batch_idx];
+    int2    kernelSize = kernelSizeArr[batch_idx];
+    double2 sigma      = sigmaArr[batch_idx];
+
+    // automatic detection of kernel size from sigma
+    if (kernelSize.x <= 0 && sigma.x > 0)
+        kernelSize.x = cuda::round<int>(sigma.x * dataKernelSize * 2 + 1) | 1;
+    if (kernelSize.y <= 0 && sigma.y > 0)
+        kernelSize.y = cuda::round<int>(sigma.y * dataKernelSize * 2 + 1) | 1;
+
+    NVCV_CUDA_ASSERT(kernelSize.x > 0 && (kernelSize.x % 2 == 1) && kernelSize.x <= maxKernelSize.w,
+                     "E Wrong kernelSize.x = %d, expected > 0, odd and <= %d\n", kernelSize.x, maxKernelSize.w);
+    NVCV_CUDA_ASSERT(kernelSize.y > 0 && (kernelSize.y % 2 == 1) && kernelSize.y <= maxKernelSize.h,
+                     "E Wrong kernelSize.y = %d, expected > 0, odd and <= %d\n", kernelSize.y, maxKernelSize.h);
 
     int2 anchor{kernelSize.x / 2, kernelSize.y / 2};
 
@@ -432,8 +445,9 @@ template<typename D, NVCVBorderType B>
 void GaussianFilter2DCaller(const ImageBatchVarShapeDataStridedCuda  &inData,
                             const ImageBatchVarShapeDataStridedCuda  &outData,
                             const cuda::Tensor3DWrap<float, int32_t> &kernelTensor,
-                            const cuda::Tensor1DWrap<int2, int32_t> &kernelSizeTensor, float borderValue,
-                            cudaStream_t stream)
+                            const cuda::Tensor1DWrap<int2, int32_t> &kernelSizeTensor, Size2D maxKernelSize,
+                            const cuda::Tensor1DWrap<double2, int32_t> &sigmaTensor, int dataKernelSize,
+                            float borderValue, cudaStream_t stream)
 {
     cuda::BorderVarShapeWrap<const D, B> src(inData, cuda::SetAll<D>(borderValue));
     cuda::ImageBatchVarShapeWrap<D>      dst(outData);
@@ -448,7 +462,8 @@ void GaussianFilter2DCaller(const ImageBatchVarShapeDataStridedCuda  &inData,
     checkCudaErrors(cudaGetLastError());
 #endif
 
-    gaussianFilter2D<<<grid, block, 0, stream>>>(src, dst, kernelTensor, kernelSizeTensor);
+    gaussianFilter2D<<<grid, block, 0, stream>>>(src, dst, kernelTensor, kernelSizeTensor, maxKernelSize, sigmaTensor,
+                                                 dataKernelSize);
     checkKernelErrors();
 #ifdef CUDA_DEBUG_LOG
     checkCudaErrors(cudaStreamSynchronize(stream));
@@ -459,20 +474,24 @@ void GaussianFilter2DCaller(const ImageBatchVarShapeDataStridedCuda  &inData,
 template<typename D>
 void GaussianFilter2D(const ImageBatchVarShapeDataStridedCuda &inData, const ImageBatchVarShapeDataStridedCuda &outData,
                       const cuda::Tensor3DWrap<float, int32_t> &kernelTensor,
-                      const cuda::Tensor1DWrap<int2, int32_t> &kernelSizeTensor, NVCVBorderType borderMode,
-                      float borderValue, cudaStream_t stream)
+                      const cuda::Tensor1DWrap<int2, int32_t> &kernelSizeTensor, Size2D maxKernelSize,
+                      const cuda::Tensor1DWrap<double2, int32_t> &sigmaTensor, int dataKernelSize,
+                      NVCVBorderType borderMode, float borderValue, cudaStream_t stream)
 {
-    typedef void (*func_t)(
-        const ImageBatchVarShapeDataStridedCuda &inData, const ImageBatchVarShapeDataStridedCuda &outData,
-        const cuda::Tensor3DWrap<float, int32_t> &kernelTensor,
-        const cuda::Tensor1DWrap<int2, int32_t> &kernelSizeTensor, float borderValue, cudaStream_t stream);
+    typedef void (*func_t)(const ImageBatchVarShapeDataStridedCuda  &inData,
+                           const ImageBatchVarShapeDataStridedCuda  &outData,
+                           const cuda::Tensor3DWrap<float, int32_t> &kernelTensor,
+                           const cuda::Tensor1DWrap<int2, int32_t> &kernelSizeTensor, Size2D maxKernelSize,
+                           const cuda::Tensor1DWrap<double2, int32_t> &sigmaTensor, int dataKernelSize,
+                           float borderValue, cudaStream_t stream);
 
     static const func_t funcs[]
         = {GaussianFilter2DCaller<D, NVCV_BORDER_CONSTANT>, GaussianFilter2DCaller<D, NVCV_BORDER_REPLICATE>,
            GaussianFilter2DCaller<D, NVCV_BORDER_REFLECT>, GaussianFilter2DCaller<D, NVCV_BORDER_WRAP>,
            GaussianFilter2DCaller<D, NVCV_BORDER_REFLECT101>};
 
-    funcs[borderMode](inData, outData, kernelTensor, kernelSizeTensor, borderValue, stream);
+    funcs[borderMode](inData, outData, kernelTensor, kernelSizeTensor, maxKernelSize, sigmaTensor, dataKernelSize,
+                      borderValue, stream);
 }
 
 GaussianVarShape::GaussianVarShape(DataShape max_input_shape, DataShape max_output_shape, Size2D maxKernelSize,
@@ -577,8 +596,9 @@ ErrorCode GaussianVarShape::infer(const ImageBatchVarShapeDataStridedCuda &inDat
     typedef void (*filter2D_t)(const ImageBatchVarShapeDataStridedCuda  &inData,
                                const ImageBatchVarShapeDataStridedCuda  &outData,
                                const cuda::Tensor3DWrap<float, int32_t> &kernelTensor,
-                               const cuda::Tensor1DWrap<int2, int32_t> &kernelSizeTensor, NVCVBorderType borderMode,
-                               float borderValue, cudaStream_t stream);
+                               const cuda::Tensor1DWrap<int2, int32_t> &kernelSizeTensor, Size2D maxKernelSize,
+                               const cuda::Tensor1DWrap<double2, int32_t> &sigmaTensor, int dataKernelSize,
+                               NVCVBorderType borderMode, float borderValue, cudaStream_t stream);
 
     static const filter2D_t funcs[6][4] = {
         { GaussianFilter2D<uchar>, 0,  GaussianFilter2D<uchar3>,  GaussianFilter2D<uchar4>},
@@ -593,7 +613,8 @@ ErrorCode GaussianVarShape::infer(const ImageBatchVarShapeDataStridedCuda &inDat
 
     NVCV_ASSERT(func != 0);
 
-    func(inData, outData, kernelTensor, kernelSizeTensor, borderMode, borderValue, stream);
+    func(inData, outData, kernelTensor, kernelSizeTensor, m_maxKernelSize, sigmaTensor, dataKernelSize, borderMode,
+         borderValue, stream);
 
     return ErrorCode::SUCCESS;
 }

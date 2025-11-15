@@ -1,4 +1,4 @@
-/* Copyright (c) 2021-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+/* Copyright (c) 2021-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  *
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
  * SPDX-License-Identifier: Apache-2.0
@@ -113,7 +113,7 @@ ErrorCode Filter2D(const TensorDataStridedCuda &inData, const TensorDataStridedC
     {
 #define NVCV_FILTER_CASE(BORDERTYPE) \
     case BORDERTYPE:                 \
-        return Filter2DCaller<T, BORDERTYPE>(inData, outData, kernel, kernelSize, kernelAnchor, borderValue, stream);
+        return Filter2DCaller<T, BORDERTYPE>(inData, outData, kernel, kernelSize, kernelAnchor, borderValue, stream)
 
         NVCV_FILTER_CASE(NVCV_BORDER_CONSTANT);
         NVCV_FILTER_CASE(NVCV_BORDER_REPLICATE);

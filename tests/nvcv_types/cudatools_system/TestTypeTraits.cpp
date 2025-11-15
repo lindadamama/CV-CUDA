@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2022-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2022-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -110,7 +110,7 @@ TYPED_TEST(HasTypeTraitsSupportedTest, is_true)
 
 TEST(HasTypeTraitsWithTwoSupportedTypesTest, is_true)
 {
-    EXPECT_TRUE((cuda::HasTypeTraits<unsigned int, double4>));
+    EXPECT_TRUE((cuda::HasTypeTraits<unsigned int, double4_16a>));
 }
 
 // -------------------------- Testing IsCompound -------------------------------
@@ -158,8 +158,8 @@ class TypeTraitsSupportedVectorTest : public TypeTraitsBaseTest<T>
 {
 };
 
-using TypeTraitsSupportedVectorTypes = t::Types<dim3, uchar1, char2, ushort3, short4, uint1, int2, ulong3, long4,
-                                                ulonglong1, longlong2, float3, double4>;
+using TypeTraitsSupportedVectorTypes = t::Types<dim3, uchar1, char2, ushort3, short4, uint1, int2, ulong3, long4_16a,
+                                                ulonglong1, longlong2, float3, double4_16a>;
 
 TYPED_TEST_SUITE(TypeTraitsSupportedVectorTest, TypeTraitsSupportedVectorTypes);
 
@@ -268,7 +268,7 @@ class TypeTraitsConvertBaseTypeToTest : public TypeTraitsBaseTest<T>
 {
 };
 
-NVCV_TYPED_TEST_SUITE_F(TypeTraitsConvertBaseTypeToTest, t::Types<char, short1, char2, uint3, double4>);
+NVCV_TYPED_TEST_SUITE_F(TypeTraitsConvertBaseTypeToTest, t::Types<char, short1, char2, uint3, double4_16a>);
 
 TYPED_TEST(TypeTraitsConvertBaseTypeToTest, correct_type_traits)
 {
@@ -415,10 +415,10 @@ public:
 
 NVCV_TYPED_TEST_SUITE_F(
     TypeTraitsVectorTypePrintTest,
-    test::type::Zip<test::Types<float, double1, int2, short3, ulong4>,
-                    test::Values<TStr("float"), TStr("double1"), TStr("int2"), TStr("short3"), TStr("ulong4")>,
+    test::type::Zip<test::Types<float, double1, int2, short3, ulong4_16a>,
+                    test::Values<TStr("float"), TStr("double1"), TStr("int2"), TStr("short3"), TStr("ulong4_16a")>,
                     test::Values<TStr("1"), TStr("double1(1)"), TStr("int2(1, 2)"), TStr("short3(1, 2, 3)"),
-                                 TStr("ulong4(1, 2, 3, 4)")>>);
+                                 TStr("ulong4_16a(1, 2, 3, 4)")>>);
 
 TYPED_TEST(TypeTraitsVectorTypePrintTest, correct_output_stream)
 {

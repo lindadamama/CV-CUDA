@@ -1,4 +1,4 @@
-/* Copyright (c) 2021-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+/* Copyright (c) 2021-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  *
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
  * SPDX-License-Identifier: Apache-2.0
@@ -203,6 +203,12 @@ ErrorCode WarpAffineVarShape::infer(const ImageBatchVarShapeDataStridedCuda &inD
         return ErrorCode::INVALID_PARAMETER;
     }
 
+    if (!inData.uniqueFormat())
+    {
+        LOG_ERROR("Images in the input varshape must all have the same format");
+        return ErrorCode::INVALID_DATA_FORMAT;
+    }
+
     if (m_maxBatchSize < inData.numImages())
     {
         LOG_ERROR("Invalid number of images, it should not exceed " << m_maxBatchSize);
@@ -223,12 +229,6 @@ ErrorCode WarpAffineVarShape::infer(const ImageBatchVarShapeDataStridedCuda &inD
     if (!(format == kNHWC || format == kHWC))
     {
         LOG_ERROR("Invalid input DataFormat " << format << ", the valid DataFormats are: \"NHWC\", \"HWC\"");
-        return ErrorCode::INVALID_DATA_FORMAT;
-    }
-
-    if (!inData.uniqueFormat())
-    {
-        LOG_ERROR("Images in the input varshape must all have the same format");
         return ErrorCode::INVALID_DATA_FORMAT;
     }
 
@@ -336,6 +336,12 @@ ErrorCode WarpPerspectiveVarShape::infer(const ImageBatchVarShapeDataStridedCuda
         return ErrorCode::INVALID_DATA_SHAPE;
     }
 
+    if (!inData.uniqueFormat())
+    {
+        LOG_ERROR("Images in the input varshape must all have the same format");
+        return ErrorCode::INVALID_DATA_FORMAT;
+    }
+
     DataFormat input_format  = helpers::GetLegacyDataFormat(inData);
     DataFormat output_format = helpers::GetLegacyDataFormat(outData);
 
@@ -350,12 +356,6 @@ ErrorCode WarpPerspectiveVarShape::infer(const ImageBatchVarShapeDataStridedCuda
     if (!(format == kNHWC || format == kHWC))
     {
         LOG_ERROR("Invalid input DataFormat " << format << ", the valid DataFormats are: \"NHWC\", \"HWC\"");
-        return ErrorCode::INVALID_DATA_FORMAT;
-    }
-
-    if (!inData.uniqueFormat())
-    {
-        LOG_ERROR("Images in the input varshape must all have the same format");
         return ErrorCode::INVALID_DATA_FORMAT;
     }
 

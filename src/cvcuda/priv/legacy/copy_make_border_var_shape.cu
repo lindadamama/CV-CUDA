@@ -1,4 +1,4 @@
-/* Copyright (c) 2021-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+/* Copyright (c) 2021-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  *
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
  * SPDX-License-Identifier: Apache-2.0
@@ -195,28 +195,28 @@ ErrorCode CopyMakeBorderVarShape::inferWarp(const ImageBatchVarShapeDataStridedC
 
     DataType   left_data_type = GetLegacyDataType(left.dtype());
     DataFormat left_format    = GetLegacyDataFormat(left.layout());
-    if (left_data_type != kCV_32S)
-    {
-        LOG_ERROR("Invalid Left DataType " << left_data_type);
-        return ErrorCode::INVALID_DATA_TYPE;
-    }
     if (!(left_format == kNHWC || left_format == kHWC))
     {
         LOG_ERROR("Invalid Left DataFormat " << left_format);
         return ErrorCode::INVALID_DATA_FORMAT;
     }
+    if (left_data_type != kCV_32S)
+    {
+        LOG_ERROR("Invalid Left DataType " << left_data_type);
+        return ErrorCode::INVALID_DATA_TYPE;
+    }
 
     DataType   top_data_type = GetLegacyDataType(top.dtype());
     DataFormat top_format    = GetLegacyDataFormat(top.layout());
-    if (top_data_type != kCV_32S)
-    {
-        LOG_ERROR("Invalid Top DataType " << top_data_type);
-        return ErrorCode::INVALID_DATA_TYPE;
-    }
     if (!(top_format == kNHWC || top_format == kHWC))
     {
         LOG_ERROR("Invalid Top DataFormat " << top_format);
         return ErrorCode::INVALID_DATA_FORMAT;
+    }
+    if (top_data_type != kCV_32S)
+    {
+        LOG_ERROR("Invalid Top DataType " << top_data_type);
+        return ErrorCode::INVALID_DATA_TYPE;
     }
 
     typedef void (*func_t)(const ImageBatchVarShapeDataStridedCuda &d_in, const OutType &d_out,

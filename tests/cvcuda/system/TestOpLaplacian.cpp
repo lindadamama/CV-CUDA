@@ -452,3 +452,8 @@ TEST(OpLaplacianVarshape_Negative, varshape_hasDifferentFormat)
 
     ASSERT_EQ(cudaSuccess, cudaStreamDestroy(stream));
 }
+
+TEST(OpLaplacian_Negative, create_null_handle)
+{
+    EXPECT_EQ(cvcudaLaplacianCreate(nullptr), NVCV_ERROR_INVALID_ARGUMENT);
+}

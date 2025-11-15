@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2023-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2023-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,24 +17,10 @@
 # things may throw unexpected errors.
 import pycuda.driver as cuda  # noqa: F401
 import os
-import sys
 import logging
 import cvcuda
-import nvcv
 import torch
-
 from pathlib import Path
-
-# Bring module folders from the samples directory into our path so that
-# we can import modules from it.
-current_dir = Path(os.path.abspath(__file__)).parents[0]
-samples_dir = os.path.join(Path(os.path.abspath(__file__)).parents[2], "samples")
-common_dir = os.path.join(
-    samples_dir,
-    "common",
-    "python",
-)
-sys.path.insert(0, common_dir)
 
 from perf_utils import (  # noqa: E402
     CvCudaPerf,
@@ -47,6 +33,8 @@ from nvcodec_utils import (  # noqa: E402
 )
 
 from bench_utils import get_benchmark_eligible_ops_info  # noqa: E402
+
+current_dir = Path(os.path.abspath(__file__)).parents[0]
 
 
 def run_bench(
@@ -168,9 +156,9 @@ def run_bench(
             cvcuda_perf.pop_range(delete_range=not success)  # For the run_op
             # reset the cache limit to not affect other operator benchmarks, in case a benchmark test
             # changed it
-            if hasattr(nvcv, "set_cache_limit_inbytes"):
+            if hasattr(cvcuda, "set_cache_limit_inbytes"):
                 total = torch.cuda.mem_get_info()[1]
-                nvcv.set_cache_limit_inbytes(total // 2)
+                cvcuda.set_cache_limit_inbytes(total // 2)
 
             # Step 3: log the parameters used by the operator, initialized during the setup call.
             if success:

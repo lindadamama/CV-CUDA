@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2023-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2023-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -538,54 +538,56 @@ inline void ValidateTensorArgs(nvcv::DataType &argDType, nvcv::Optional<nvcv::Te
                                const nvcv::Tensor &brightness, const nvcv::Tensor &contrast,
                                const nvcv::Tensor &brightnessShift, const nvcv::Tensor &contrastCenter)
 {
-#define NVCV_VALIDATE_ARG_DATA(ARG_NAME, ARG_DATA, ARG_TENSOR)                                                       \
-    if (ARG_TENSOR)                                                                                                  \
-    {                                                                                                                \
-        ARG_DATA = ARG_TENSOR.exportData<nvcv::TensorDataStridedCuda>();                                             \
-        if (!ARG_DATA)                                                                                               \
-        {                                                                                                            \
-            throw nvcv::Exception(nvcv::Status::ERROR_INVALID_ARGUMENT,                                              \
-                                  "The " ARG_NAME " argument must be cuda-accessible, pitch-linear tensor");         \
-        }                                                                                                            \
-        if (ARG_DATA->rank() > 1)                                                                                    \
-        {                                                                                                            \
-            throw nvcv::Exception(nvcv::Status::ERROR_INVALID_ARGUMENT,                                              \
-                                  "The " ARG_NAME " argument must be a scalar or 1D tensor");                        \
-        }                                                                                                            \
-        else if (ARG_DATA->rank() == 1)                                                                              \
-        {                                                                                                            \
-            int argNumSamples = ARG_DATA->shape()[0];                                                                \
-            if (argNumSamples != 0 && argNumSamples != 1 && argNumSamples != numSamples)                             \
-            {                                                                                                        \
-                throw nvcv::Exception(nvcv::Status::ERROR_INVALID_ARGUMENT,                                          \
-                                      "If the " ARG_NAME                                                             \
-                                      " argument is specified, it must be a scalar or 1D tensor whose length must "  \
-                                      "match the number of input images");                                           \
-            }                                                                                                        \
-        }                                                                                                            \
-        if (ARG_DATA->dtype() != nvcv::TYPE_F32 && ARG_DATA->dtype() != nvcv::TYPE_F64)                              \
-        {                                                                                                            \
-            throw nvcv::Exception(nvcv::Status::ERROR_INVALID_ARGUMENT,                                              \
-                                  "The " ARG_NAME " argument must have float type or double for int32 input types"); \
-        }                                                                                                            \
-        if (argDType == NVCV_DATA_TYPE_NONE)                                                                         \
-        {                                                                                                            \
-            argDType = ARG_DATA->dtype();                                                                            \
-        }                                                                                                            \
-        else if (argDType != ARG_DATA->dtype())                                                                      \
-        {                                                                                                            \
-            throw nvcv::Exception(                                                                                   \
-                nvcv::Status::ERROR_INVALID_ARGUMENT,                                                                \
-                "The brightnes/contrast/brigtness shift and contrast center arguments must be of the same type");    \
-        }                                                                                                            \
-    }
+    auto validateArgData = [&](const std::string &argName, nvcv::Optional<nvcv::TensorDataStridedCuda> &argData,
+                               const nvcv::Tensor &argTensor)
+    {
+        if (argTensor)
+        {
+            argData = argTensor.exportData<nvcv::TensorDataStridedCuda>();
+            if (!argData)
+            {
+                throw nvcv::Exception(nvcv::Status::ERROR_INVALID_ARGUMENT,
+                                      "The %s argument must be cuda-accessible, pitch-linear tensor", argName.c_str());
+            }
+            if (argData->rank() > 1)
+            {
+                throw nvcv::Exception(nvcv::Status::ERROR_INVALID_ARGUMENT,
+                                      "The %s argument must be a scalar or 1D tensor", argName.c_str());
+            }
+            else if (argData->rank() == 1)
+            {
+                int argNumSamples = argData->shape()[0];
+                if (argNumSamples != 0 && argNumSamples != 1 && argNumSamples != numSamples)
+                {
+                    throw nvcv::Exception(nvcv::Status::ERROR_INVALID_ARGUMENT,
+                                          "If the %s argument is specified, it must be a scalar or 1D tensor whose "
+                                          "length must match the number of input images",
+                                          argName.c_str());
+                }
+            }
+            if (argData->dtype() != nvcv::TYPE_F32 && argData->dtype() != nvcv::TYPE_F64)
+            {
+                throw nvcv::Exception(nvcv::Status::ERROR_INVALID_ARGUMENT,
+                                      "The %s argument must have float type or double for int32 input types",
+                                      argName.c_str());
+            }
+            if (argDType == NVCV_DATA_TYPE_NONE)
+            {
+                argDType = argData->dtype();
+            }
+            else if (argDType != argData->dtype())
+            {
+                throw nvcv::Exception(
+                    nvcv::Status::ERROR_INVALID_ARGUMENT,
+                    "The brightness/contrast/brightness shift and contrast center arguments must be of the same type");
+            }
+        }
+    };
 
-    NVCV_VALIDATE_ARG_DATA("brigtness", brightnessData, brightness)
-    NVCV_VALIDATE_ARG_DATA("contrast", contrastData, contrast)
-    NVCV_VALIDATE_ARG_DATA("brigtness shift", brightnessShiftData, brightnessShift)
-    NVCV_VALIDATE_ARG_DATA("contrast center", contrastCenterData, contrastCenter)
-
-#undef NVCV_VALIDATE_ARG_DATA
+    validateArgData("brightness", brightnessData, brightness);
+    validateArgData("contrast", contrastData, contrast);
+    validateArgData("brightness shift", brightnessShiftData, brightnessShift);
+    validateArgData("contrast center", contrastCenterData, contrastCenter);
 }
 
 } // anonymous namespace

@@ -1,4 +1,4 @@
-/* Copyright (c) 2021-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+/* Copyright (c) 2021-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  *
  * SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
  * SPDX-License-Identifier: Apache-2.0
@@ -23,6 +23,7 @@
 
 #include "CvCudaUtils.cuh"
 
+#include <cvcuda/cuda_tools/Compat.hpp>
 #include <cvcuda/cuda_tools/MathWrappers.hpp>
 
 #include <cmath>
@@ -74,7 +75,8 @@ inline __device__ T *_cacheAlignedBufferedReadVS(cuda::ImageBatchVarShapeWrap<co
             const int skew = ((size_t)pixSrcPtr) & M; //byte offset for nXPosMin
             int       i    = 0;
             if (M >= 31) //256-bit align, 32 bytes at a time
-                for (; i < nWordsToRead; i += 8) *((double4 *)(&pReadBuffer[i])) = *((double4 *)(&memSrcPtr[i]));
+                for (; i < nWordsToRead; i += 8)
+                    *((double4_16a *)(&pReadBuffer[i])) = *((double4_16a *)(&memSrcPtr[i]));
             if (M == 15) //128-bit align, 16 bytes at a time
                 for (; i < nWordsToRead; i += 4) *((float4 *)(&pReadBuffer[i])) = *((float4 *)(&memSrcPtr[i]));
             if (M == 7) //64-bit align, 8 bytes at a time
@@ -298,9 +300,20 @@ ErrorCode RandomResizedCropVarShape::infer(const ImageBatchVarShape &in, const I
     const ImageBatchVarShapeDataStridedCuda &inData  = *inDataPtr;
     const ImageBatchVarShapeDataStridedCuda &outData = *outDataPtr;
 
+    if (!inData.uniqueFormat())
+    {
+        LOG_ERROR("Images in input batch must all have the same format ");
+        return ErrorCode::INVALID_DATA_FORMAT;
+    }
+    if (!outData.uniqueFormat())
+    {
+        LOG_ERROR("Images in output batch must all have the same format ");
+        return ErrorCode::INVALID_DATA_FORMAT;
+    }
+
     if (m_maxBatchSize <= 0 || inData.numImages() > m_maxBatchSize)
     {
-        LOG_ERROR("Invalid maximum batch size" << m_maxBatchSize);
+        LOG_ERROR("Invalid maximum batch size " << m_maxBatchSize);
         return ErrorCode::INVALID_PARAMETER;
     }
 
@@ -318,12 +331,6 @@ ErrorCode RandomResizedCropVarShape::infer(const ImageBatchVarShape &in, const I
     if (!(format == kNHWC || format == kHWC))
     {
         LOG_ERROR("Invalid input DataFormat " << format << ", the valid DataFormats are: \"NHWC\", \"HWC\"");
-        return ErrorCode::INVALID_DATA_FORMAT;
-    }
-
-    if (!inData.uniqueFormat())
-    {
-        LOG_ERROR("Images in input batch must all have the same format ");
         return ErrorCode::INVALID_DATA_FORMAT;
     }
 

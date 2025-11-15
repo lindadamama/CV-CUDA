@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2022-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2022-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,7 +15,8 @@
  * limitations under the License.
  */
 
-#include <common/TypedTests.hpp>            // for NVCV_TYPED_TEST_SUITE, etc.
+#include <common/TypedTests.hpp> // for NVCV_TYPED_TEST_SUITE, etc.
+#include <cvcuda/cuda_tools/Compat.hpp>
 #include <cvcuda/cuda_tools/StaticCast.hpp> // the object of this test
 
 namespace cuda  = nvcv::cuda;
@@ -40,7 +41,7 @@ NVCV_TYPED_TEST_SUITE(
     ttype::Types<unsigned int, ttype::Value<int3{123, 234, 345}>, ttype::Value<uint3{123, 234, 345}>>,
     ttype::Types<int, ttype::Value<uint3{123, 234, 345}>, ttype::Value<int3{123, 234, 345}>>,
     // different sizes
-    ttype::Types<double, ttype::Value<float4{-1.5f, 0.f, 1.5f, 2.5f}>, ttype::Value<double4{-1.5, 0.0, 1.5, 2.5}>>,
+    ttype::Types<double, ttype::Value<float4{-1.5f, 0.f, 1.5f, 2.5f}>, ttype::Value<double4_16a{-1.5, 0.0, 1.5, 2.5}>>,
     ttype::Types<float, ttype::Value<double3{-1.5, 0.0, 1.5f}>, ttype::Value<float3{-1.5f, 0.f, 1.5f}>>,
     ttype::Types<unsigned long, ttype::Value<long2{1234567, 2345678}>, ttype::Value<ulong2{1234567, 2345678}>>,
     ttype::Types<long, ttype::Value<longlong2{-1234, -2345}>, ttype::Value<long2{-1234, -2345}>>

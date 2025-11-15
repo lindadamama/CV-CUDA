@@ -1680,9 +1680,9 @@ ErrorCode CvtColorVarShape::infer(const ImageBatchVarShapeDataStridedCuda &inDat
         BGR_to_GRAY, // CV_BGR2GRAY    =6
         BGR_to_GRAY, // CV_RGB2GRAY    =7
         GRAY_to_BGR, // CV_GRAY2BGR    =8
-        0,           //GRAY_to_BGRA,           // CV_GRAY2BGRA   =9
-        0,           //BGRA_to_GRAY,           // CV_BGRA2GRAY   =10
-        0,           //RGBA_to_GRAY,           // CV_RGBA2GRAY   =11
+        GRAY_to_BGR, // CV_GRAY2BGRA, CV_GRAY2RGBA   =9
+        BGR_to_GRAY, // CV_BGRA2GRAY   =10
+        BGR_to_GRAY, // CV_RGBA2GRAY   =11
 
         0, //BGR_to_BGR565,          // CV_BGR2BGR565  =12
         0, //RGB_to_BGR565,          // CV_RGB2BGR565  =13

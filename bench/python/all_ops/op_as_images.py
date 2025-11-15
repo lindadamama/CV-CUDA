@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2024-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import nvcv
+import cvcuda
 
 # NOTE: One must import PyCuda driver first, before CVCUDA or VPF otherwise
 # things may throw unexpected errors.
@@ -21,23 +21,23 @@ import pycuda.driver as cuda  # noqa: F401
 from bench_utils import AbstractOpBase
 
 
-class OpAsImagesFromNVCVImage(AbstractOpBase):
+class OpAsImagesFromCVCUDAImage(AbstractOpBase):
     def setup(self, input):
         super().setup(input)
         # dummy run that does not use cache
-        nvcv.ImageBatchVarShape(100)
-        img = nvcv.Image((128, 128), nvcv.Format.RGBA8)
+        cvcuda.ImageBatchVarShape(100)
+        img = cvcuda.Image((128, 128), cvcuda.Format.RGBA8)
 
         self.imglists = []
         for _ in range(10):
             imglist = []
             for _ in range(100):
-                img = nvcv.Image((128, 128), nvcv.Format.RGBA8)
+                img = cvcuda.Image((128, 128), cvcuda.Format.RGBA8)
                 imglist.append(img.cuda())
             self.imglists.append(imglist)
         self.cycle = 0
 
     def run(self, input):
-        nvcv.as_images(self.imglists[self.cycle % len(self.imglists)])
+        cvcuda.as_images(self.imglists[self.cycle % len(self.imglists)])
         self.cycle += 1
         return
